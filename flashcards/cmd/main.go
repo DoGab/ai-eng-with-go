@@ -26,17 +26,17 @@ func main() {
 	}
 	defer todoRepo.Close()
 
-	flashcardRepo, err := db.NewPostgresFlashcardRepository(cfg.DatabaseURL)
+	noteRepo, err := db.NewPostgresNoteRepository(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to initialize flashcard database: %v", err)
+		log.Fatalf("Failed to initialize note database: %v", err)
 	}
-	defer flashcardRepo.Close()
+	defer noteRepo.Close()
 
 	todoService := services.NewTodoService(todoRepo)
 	todoHandler := handlers.NewTodoHandler(todoService)
 
-	flashcardService := services.NewFlashcardService(flashcardRepo)
-	flashcardHandler := handlers.NewFlashcardHandler(flashcardService)
+	noteService := services.NewNoteService(noteRepo)
+	noteHandler := handlers.NewNoteHandler(noteService)
 
 	router := mux.NewRouter()
 
@@ -44,7 +44,7 @@ func main() {
 	router.Use(jsonMiddleware)
 
 	todoHandler.RegisterRoutes(router)
-	flashcardHandler.RegisterRoutes(router)
+	noteHandler.RegisterRoutes(router)
 
 	router.HandleFunc("/health", healthCheckHandler).Methods("GET")
 
