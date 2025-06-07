@@ -66,6 +66,9 @@ The application uses environment-based configuration managed through the `config
 - **DB_URL**: PostgreSQL database connection string (required)
 - **PORT**: Application port (optional, defaults to 8080)
 
+### Exported calls for REST client
+You can find an exported HAR archive which you can import into a REST client for easily interacting with the API in `./artifacts`
+
 ## Database
 
 The project uses PostgreSQL with Supabase for local development:
