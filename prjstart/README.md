@@ -61,12 +61,8 @@ The template includes a complete REST API with the following endpoints:
 ### Health Check
 - `GET /health` - Application health status
 
-### Main Resource Operations
-- `GET /todos` - Retrieve all items
-- `POST /todos` - Create a new item
-- `GET /todos/{id}` - Retrieve item by ID
-- `PUT /todos/{id}` - Update item by ID  
-- `DELETE /todos/{id}` - Delete item by ID
+### Exported calls for REST client
+You can find an exported HAR archive which you can import into a REST client for easily interacting with the API in `./artifacts`
 
 ## Configuration
 
