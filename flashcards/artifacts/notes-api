@@ -3,15 +3,15 @@
 		"version": "1.2",
 		"creator": {
 			"name": "Insomnia REST Client",
-			"version": "insomnia.desktop.app:v11.1.0"
+			"version": "insomnia.desktop.app:v11.2.0"
 		},
 		"entries": [
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
-				"time": 10.085,
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
+				"time": 14.788,
 				"request": {
 					"method": "POST",
-					"url": "http://localhost:8080/flashcards",
+					"url": "http://localhost:8080/notes",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [
@@ -52,7 +52,7 @@
 						},
 						{
 							"name": "Date",
-							"value": "Tue, 03 Jun 2025 18:57:52 GMT"
+							"value": "Sat, 07 Jun 2025 10:09:50 GMT"
 						},
 						{
 							"name": "Content-Length",
@@ -62,7 +62,7 @@
 					"content": {
 						"size": 136,
 						"mimeType": "application/json",
-						"text": "{\"id\":2,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-03T18:57:52.120868Z\",\"updatedAt\":\"2025-06-03T18:57:52.120868Z\"}\n"
+						"text": "{\"id\":3,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-07T10:09:50.679752Z\",\"updatedAt\":\"2025-06-07T10:09:50.679752Z\"}\n"
 					},
 					"redirectURL": "",
 					"headersSize": -1,
@@ -74,18 +74,18 @@
 					"dns": -1,
 					"connect": -1,
 					"send": 0,
-					"wait": 10.085,
+					"wait": 14.788,
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Create Flashcard"
+				"comment": "Create Note"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 0,
 				"request": {
 					"method": "PUT",
-					"url": "http://localhost:8080/flashcards/1",
+					"url": "http://localhost:8080/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [
@@ -126,14 +126,14 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Update Flashcard"
+				"comment": "Update Note"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 0,
 				"request": {
 					"method": "DELETE",
-					"url": "http://localhost:8080/flashcards/1",
+					"url": "http://localhost:8080/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -169,14 +169,14 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Delete Flashcard"
+				"comment": "Delete Note"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
-				"time": 1.767,
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
+				"time": 3.391,
 				"request": {
 					"method": "GET",
-					"url": "http://localhost:8080/flashcards",
+					"url": "http://localhost:8080/notes",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -212,17 +212,17 @@
 						},
 						{
 							"name": "Date",
-							"value": "Sat, 07 Jun 2025 09:13:49 GMT"
+							"value": "Sat, 07 Jun 2025 10:09:57 GMT"
 						},
 						{
 							"name": "Content-Length",
-							"value": "138"
+							"value": "274"
 						}
 					],
 					"content": {
-						"size": 138,
+						"size": 274,
 						"mimeType": "application/json",
-						"text": "[{\"id\":2,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-03T18:57:52.120868Z\",\"updatedAt\":\"2025-06-03T18:57:52.120868Z\"}]\n"
+						"text": "[{\"id\":3,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-07T10:09:50.679752Z\",\"updatedAt\":\"2025-06-07T10:09:50.679752Z\"},{\"id\":2,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-03T18:57:52.120868Z\",\"updatedAt\":\"2025-06-03T18:57:52.120868Z\"}]\n"
 					},
 					"redirectURL": "",
 					"headersSize": -1,
@@ -234,18 +234,18 @@
 					"dns": -1,
 					"connect": -1,
 					"send": 0,
-					"wait": 1.767,
+					"wait": 3.391,
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Get all Flashcards"
+				"comment": "Get all Notes"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 0,
 				"request": {
 					"method": "GET",
-					"url": "http://localhost:8080/flashcards/1",
+					"url": "http://localhost:8080/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -281,14 +281,14 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Get Flashcard by ID"
+				"comment": "Get Note by ID"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
-				"time": 270.14,
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
+				"time": 352.13100000000003,
 				"request": {
 					"method": "GET",
-					"url": "https://flashcards-6doy.onrender.com/flashcards",
+					"url": "https://flashcards-6doy.onrender.com/notes",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -308,7 +308,7 @@
 					"headers": [
 						{
 							"name": "date",
-							"value": "Sat, 07 Jun 2025 09:15:50 GMT"
+							"value": "Sat, 07 Jun 2025 10:10:15 GMT"
 						},
 						{
 							"name": "content-type",
@@ -328,7 +328,7 @@
 						},
 						{
 							"name": "rndr-id",
-							"value": "84c69c35-816b-4a74"
+							"value": "d1609ccf-421b-4463"
 						},
 						{
 							"name": "vary",
@@ -348,7 +348,7 @@
 						},
 						{
 							"name": "cf-ray",
-							"value": "94bf0c16faad313e-SOF"
+							"value": "94bf5bceb8fd3141-SOF"
 						},
 						{
 							"name": "alt-svc",
@@ -358,7 +358,7 @@
 					"content": {
 						"size": 138,
 						"mimeType": "application/json",
-						"text": "[{\"id\":1,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-04T18:16:48.994208Z\",\"updatedAt\":\"2025-06-04T18:16:48.994208Z\"}]\n"
+						"text": "[{\"id\":2,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-07T10:10:11.367262Z\",\"updatedAt\":\"2025-06-07T10:10:11.367262Z\"}]\n"
 					},
 					"redirectURL": "",
 					"headersSize": -1,
@@ -370,18 +370,18 @@
 					"dns": -1,
 					"connect": -1,
 					"send": 0,
-					"wait": 270.14,
+					"wait": 352.13100000000003,
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Get all Flashcards"
+				"comment": "Get all Notes"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 450.46999999999997,
 				"request": {
 					"method": "GET",
-					"url": "https://flashcards-6doy.onrender.com/flashcards/1",
+					"url": "https://flashcards-6doy.onrender.com/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -467,14 +467,14 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Get Flashcard by ID"
+				"comment": "Get Note by ID"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
-				"time": 697.607,
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
+				"time": 387.623,
 				"request": {
 					"method": "POST",
-					"url": "https://flashcards-6doy.onrender.com/flashcards",
+					"url": "https://flashcards-6doy.onrender.com/notes",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [
@@ -499,7 +499,7 @@
 					"headers": [
 						{
 							"name": "date",
-							"value": "Wed, 04 Jun 2025 18:16:49 GMT"
+							"value": "Sat, 07 Jun 2025 10:10:11 GMT"
 						},
 						{
 							"name": "content-type",
@@ -519,7 +519,7 @@
 						},
 						{
 							"name": "rndr-id",
-							"value": "9c3f19b8-66e7-400b"
+							"value": "6a6b9d58-24dc-486d"
 						},
 						{
 							"name": "vary",
@@ -539,7 +539,7 @@
 						},
 						{
 							"name": "cf-ray",
-							"value": "94a96c67cd87313f-SOF"
+							"value": "94bf5bb39b0c3141-SOF"
 						},
 						{
 							"name": "alt-svc",
@@ -549,7 +549,7 @@
 					"content": {
 						"size": 136,
 						"mimeType": "application/json",
-						"text": "{\"id\":1,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-04T18:16:48.994208Z\",\"updatedAt\":\"2025-06-04T18:16:48.994208Z\"}\n"
+						"text": "{\"id\":2,\"content\":\"What is the capital of France?\",\"createdAt\":\"2025-06-07T10:10:11.367262Z\",\"updatedAt\":\"2025-06-07T10:10:11.367262Z\"}\n"
 					},
 					"redirectURL": "",
 					"headersSize": -1,
@@ -561,18 +561,18 @@
 					"dns": -1,
 					"connect": -1,
 					"send": 0,
-					"wait": 697.607,
+					"wait": 387.623,
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Create Flashcard"
+				"comment": "Create Note"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 531.499,
 				"request": {
 					"method": "PUT",
-					"url": "https://flashcards-6doy.onrender.com/flashcards/1",
+					"url": "https://flashcards-6doy.onrender.com/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [
@@ -663,14 +663,14 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Update Flashcard"
+				"comment": "Update Note"
 			},
 			{
-				"startedDateTime": "2025-06-07T09:17:47.807Z",
+				"startedDateTime": "2025-06-07T10:11:58.780Z",
 				"time": 456.854,
 				"request": {
 					"method": "DELETE",
-					"url": "https://flashcards-6doy.onrender.com/flashcards/1",
+					"url": "https://flashcards-6doy.onrender.com/notes/1",
 					"httpVersion": "HTTP/1.1",
 					"cookies": [],
 					"headers": [],
@@ -756,7 +756,7 @@
 					"receive": 0,
 					"ssl": -1
 				},
-				"comment": "Delete Flashcard"
+				"comment": "Delete Note"
 			}
 		]
 	}
