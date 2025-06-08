@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Port        string
+	DatabaseURL  string
+	Port         string
+	OpenAIAPIKey string
 }
 
 func Load() *Config {
@@ -18,8 +19,9 @@ func Load() *Config {
 	}
 
 	config := &Config{
-		DatabaseURL: getEnv("DB_URL"),
-		Port:        getEnvWithDefault("PORT", "8080"),
+		DatabaseURL:  getEnv("DB_URL"),
+		Port:         getEnvWithDefault("PORT", "8080"),
+		OpenAIAPIKey: getEnv("OPENAI_API_KEY"),
 	}
 
 	return config

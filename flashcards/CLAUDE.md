@@ -54,6 +54,32 @@ Requires `.env` file with:
 
 Both Docker and Supabase CLI must be installed and running for database operations.
 
+## Logging Standards
+
+**Required Logging Pattern for All Components:**
+- **Operation Start**: Log at the beginning of each operation with relevant context
+  ```go
+  log.Printf("[INFO] Starting operation with %d items", count)
+  ```
+- **Operation Success**: Log when operations complete successfully
+  ```go
+  log.Printf("[INFO] Operation completed successfully, processed %d items", count)
+  ```
+- **Error Handling**: Always log errors at the point of failure, avoid redundant logging up the call stack
+  ```go
+  log.Printf("[ERROR] Operation failed: %v", err)
+  ```
+
+**Log Levels:**
+- Use `[INFO]` for happy path scenarios and operation progress
+- Use `[ERROR]` for error scenarios only
+- Include relevant context (counts, IDs, operation types) in log messages
+
+**Apply to All New Components:**
+- Handlers: Log request start, completion, and any decode/validation errors
+- Services: Log operation start, progress milestones, and successful completion
+- Repositories: Log database operations and query results
+
 ## Development Workflow Guidance
 
 - After each task is complete, go build the project to verify your work and then fix any issues which come up.
