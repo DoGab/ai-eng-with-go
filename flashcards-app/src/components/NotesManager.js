@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { notesApi } from '../api/flashcardsApi';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 
 const NotesManager = () => {
   const [notes, setNotes] = useState([]);
@@ -9,6 +10,22 @@ const NotesManager = () => {
   const [newNote, setNewNote] = useState('');
   const [editingNote, setEditingNote] = useState(null);
   const [editContent, setEditContent] = useState('');
+  const [expandedNotes, setExpandedNotes] = useState(new Set());
+
+  const truncateText = (text, maxLength = 300) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  const toggleExpanded = (noteId) => {
+    const newExpanded = new Set(expandedNotes);
+    if (newExpanded.has(noteId)) {
+      newExpanded.delete(noteId);
+    } else {
+      newExpanded.add(noteId);
+    }
+    setExpandedNotes(newExpanded);
+  };
 
   useEffect(() => {
     fetchNotes();
@@ -147,7 +164,19 @@ const NotesManager = () => {
                 ) : (
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <p className="text-gray-800 whitespace-pre-wrap">{note.content}</p>
+                      <div className="text-gray-800 prose prose-sm max-w-none">
+                        <ReactMarkdown>
+                          {expandedNotes.has(note.id) ? note.content : truncateText(note.content)}
+                        </ReactMarkdown>
+                      </div>
+                      {note.content.length > 300 && (
+                        <button
+                          onClick={() => toggleExpanded(note.id)}
+                          className="text-blue-600 hover:text-blue-800 text-sm mt-2 transition-colors"
+                        >
+                          {expandedNotes.has(note.id) ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
                       <p className="text-sm text-gray-500 mt-2">
                         Created: {new Date(note.createdAt).toLocaleDateString()} | 
                         Updated: {new Date(note.updatedAt).toLocaleDateString()}
