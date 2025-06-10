@@ -46,6 +46,10 @@ func main() {
 	router.Use(corsMiddleware)
 	router.Use(jsonMiddleware)
 
+	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods("OPTIONS")
+
 	todoHandler.RegisterRoutes(router)
 	noteHandler.RegisterRoutes(router)
 	quizHandler.RegisterRoutes(router)
@@ -63,9 +67,12 @@ func main() {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Expose-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
+		log.Println("CORS MIDDLEWARE")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
