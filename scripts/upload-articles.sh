@@ -39,11 +39,11 @@ upload_file() {
     
     echo "Uploading: $relative_path"
     
-    # Read file content and escape for JSON
-    content=$(cat "$file_path" | jq -Rs .)
+    # Read file content
+    content=$(cat "$file_path")
     
-    # Create JSON payload
-    json_payload=$(jq -n --arg content "$content" '{content: $content}')
+    # Create JSON payload with proper escaping
+    json_payload=$(printf '%s' "$content" | jq -R -s '{content: .}')
     
     # Upload to endpoint
     if curl --request POST \

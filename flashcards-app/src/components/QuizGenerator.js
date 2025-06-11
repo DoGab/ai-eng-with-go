@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SparklesIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { quizApi, notesApi } from '../api/flashcardsApi';
 import toast from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 
 const QuizGenerator = () => {
   const [notes, setNotes] = useState([]);
@@ -10,6 +11,11 @@ const QuizGenerator = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(true);
+
+  const truncateText = (text, maxLength = 200) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
 
   useEffect(() => {
     fetchNotes();
@@ -121,7 +127,11 @@ const QuizGenerator = () => {
                   }`}
                   onClick={() => handleNoteSelection(note.id)}
                 >
-                  <p className="text-sm text-gray-600 line-clamp-3">{note.content}</p>
+                  <div className="text-sm text-gray-600 prose prose-xs max-w-none">
+                    <ReactMarkdown>
+                      {truncateText(note.content)}
+                    </ReactMarkdown>
+                  </div>
                   <p className="text-xs text-gray-400 mt-2">
                     {new Date(note.createdAt).toLocaleDateString()}
                   </p>
@@ -175,7 +185,9 @@ const QuizGenerator = () => {
                       {message.role === 'user' ? '🧑 You' : '🤖 AI Tutor'}
                     </span>
                   </div>
-                  <p className="text-gray-800 whitespace-pre-wrap">{message.content}</p>
+                  <div className="text-gray-800 prose prose-sm max-w-none">
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
+                  </div>
                 </div>
               ))}
               
