@@ -8,6 +8,7 @@ import (
 
 	"flashcards/models"
 
+	"github.com/samber/lo"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"
 )
@@ -59,9 +60,13 @@ func NewQuizService(noteService *NoteService, apiKey string) *QuizService {
 	}
 }
 
-func (qs *QuizService) GenerateQuizResponse(messages []models.Message) ([]models.Message, error) {
-	log.Printf("[INFO] Starting quiz generation with %d existing messages", len(messages))
+type GenerateQuizResult struct {
+	NoteIDs  []int
+	Messages []models.Message
+}
 
+func (qs *QuizService) GenerateQuizResponse(noteIDs []int, messages []models.Message) (*GenerateQuizResult, error) {
+	log.Printf("[INFO] Starting quiz generation with %d existing messages", len(messages))
 	ctx := context.Background()
 
 	log.Printf("[INFO] Retrieving notes for quiz generation")
@@ -72,7 +77,14 @@ func (qs *QuizService) GenerateQuizResponse(messages []models.Message) ([]models
 	}
 	log.Printf("[INFO] Retrieved %d notes for quiz generation", len(notes))
 
-	notesContent := qs.formatNotesContent(notes)
+	filteredNotes := lo.Filter(notes, func(note *models.Note, index int) bool {
+		return lo.Contains(noteIDs, note.ID)
+	})
+	if len(filteredNotes) == 0 {
+		return nil, fmt.Errorf("at least one valid note id is required")
+	}
+
+	notesContent := qs.formatNotesContent(filteredNotes)
 
 	var prompt string
 	if len(messages) == 0 {
@@ -100,7 +112,10 @@ func (qs *QuizService) GenerateQuizResponse(messages []models.Message) ([]models
 	})
 
 	log.Printf("[INFO] Successfully generated quiz response, returning %d total messages", len(updatedMessages))
-	return updatedMessages, nil
+	return &GenerateQuizResult{
+		NoteIDs:  noteIDs,
+		Messages: updatedMessages,
+	}, nil
 }
 
 func (qs *QuizService) formatNotesContent(notes []*models.Note) string {

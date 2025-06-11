@@ -43,19 +43,11 @@ const QuizGenerator = () => {
 
     setLoading(true);
     try {
-      const selectedNotesContent = notes
-        .filter(note => selectedNotes.includes(note.id))
-        .map(note => note.content)
-        .join('\n\n');
+      const selectedNoteIDs = selectedNotes;
+      console.log(selectedNoteIDs);
+      const initialMessages = [];
 
-      const initialMessages = [
-        {
-          role: 'user',
-          content: `Generate quiz questions based on these notes:\n\n${selectedNotesContent}`
-        }
-      ];
-
-      const response = await quizApi.generate(initialMessages);
+      const response = await quizApi.generate(selectedNoteIDs, initialMessages);
       setMessages(response.data.messages);
       toast.success('Quiz generated successfully!');
     } catch (error) {
@@ -70,6 +62,7 @@ const QuizGenerator = () => {
     e.preventDefault();
     if (!currentMessage.trim()) return;
 
+    const selectedNoteIDs = selectedNotes;
     const newUserMessage = {
       role: 'user',
       content: currentMessage
@@ -81,7 +74,7 @@ const QuizGenerator = () => {
     setLoading(true);
 
     try {
-      const response = await quizApi.generate(updatedMessages);
+      const response = await quizApi.generate(selectedNoteIDs, updatedMessages);
       setMessages(response.data.messages);
     } catch (error) {
       toast.error('Failed to send message');

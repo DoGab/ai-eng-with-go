@@ -18,7 +18,7 @@ export const notesApi = {
 };
 
 export const quizApi = {
-  generate: (messages) => api.post('/quiz/generate', { messages }),
+  generate: (noteIDs, messages) => api.post('/quiz/generate', { note_ids: noteIDs, messages }),
 };
 
 export const healthApi = {
