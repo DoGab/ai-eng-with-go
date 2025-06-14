@@ -51,10 +51,8 @@ export const quizApi = {
             const lines = chunk.split('\n');
             
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                  accumulatedContent += line;
-                  onToken(token, accumulatedContent);
-              }
+              accumulatedContent += line;
+              onToken(line, accumulatedContent);
             }
             
             readStream();
