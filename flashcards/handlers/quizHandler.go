@@ -73,25 +73,25 @@ func (h *QuizHandler) GenerateQuizStream(w http.ResponseWriter, r *http.Request)
 	var req QuizRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("[ERROR] Failed to decode streaming quiz request JSON: %v", err)
-		fmt.Fprintf(w, "data: Error: Invalid JSON payload\n\n")
+		fmt.Fprintf(w, "Error: Invalid JSON payload\n\n")
 		return
 	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Printf("[ERROR] Streaming not supported")
-		fmt.Fprintf(w, "data: Error: Streaming not supported\n\n")
+		fmt.Fprintf(w, "Error: Streaming not supported\n\n")
 		return
 	}
 
 	err := h.service.GenerateQuizResponseStream(req.NoteIDs, req.Messages, func(token string) {
-		fmt.Fprintf(w, "data: %s\n\n", token)
+		fmt.Fprintf(w, "%s", token)
 		flusher.Flush()
 	})
 
 	if err != nil {
 		log.Printf("[ERROR] Streaming quiz generation failed: %v", err)
-		fmt.Fprintf(w, "data: Error: %s\n\n", err.Error())
+		fmt.Fprintf(w, "Error: %s", err.Error())
 		return
 	}
 

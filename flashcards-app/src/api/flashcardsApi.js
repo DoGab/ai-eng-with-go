@@ -52,11 +52,8 @@ export const quizApi = {
             
             for (const line of lines) {
               if (line.startsWith('data: ')) {
-                const token = line.slice(6); // Remove 'data: ' prefix
-                if (token.trim() && !token.startsWith('Error:')) {
-                  accumulatedContent += token;
+                  accumulatedContent += line;
                   onToken(token, accumulatedContent);
-                }
               }
             }
             
