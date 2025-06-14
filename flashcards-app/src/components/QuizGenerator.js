@@ -213,7 +213,7 @@ const QuizGenerator = () => {
         </div>
 
         {/* Quiz Conversation */}
-        {messages.length > 0 && (
+        {(messages.length > 0 || isStreaming) && (
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">Quiz Conversation</h3>
             
@@ -263,24 +263,26 @@ const QuizGenerator = () => {
             </div>
 
             {/* Message Input */}
-            <form onSubmit={sendMessage} className="flex gap-4">
-              <input
-                type="text"
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                placeholder="Ask a question or request more quiz questions..."
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                disabled={loading || isStreaming}
-              />
-              <button
-                type="submit"
-                disabled={!currentMessage.trim() || loading || isStreaming}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <PaperAirplaneIcon className="h-5 w-5" />
-                {loading || isStreaming ? 'Sending...' : 'Send'}
-              </button>
-            </form>
+            {messages.length > 0 && (
+              <form onSubmit={sendMessage} className="flex gap-4">
+                <input
+                  type="text"
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  placeholder="Ask a question or request more quiz questions..."
+                  className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={loading || isStreaming}
+                />
+                <button
+                  type="submit"
+                  disabled={!currentMessage.trim() || loading || isStreaming}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <PaperAirplaneIcon className="h-5 w-5" />
+                  {loading || isStreaming ? 'Sending...' : 'Send'}
+                </button>
+              </form>
+            )}
           </div>
         )}
       </div>
