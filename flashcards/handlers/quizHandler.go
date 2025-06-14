@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -31,6 +32,7 @@ func NewQuizHandler(service *services.QuizService) *QuizHandler {
 
 func (h *QuizHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/quiz/generate", h.GenerateQuiz).Methods("POST")
+	router.HandleFunc("/quiz/generate/stream", h.GenerateQuizStream).Methods("POST")
 }
 
 func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +59,43 @@ func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[INFO] Quiz generation completed successfully")
 	h.writeJSONResponse(w, http.StatusOK, response)
+}
+
+func (h *QuizHandler) GenerateQuizStream(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received streaming quiz generation request")
+
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	var req QuizRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode streaming quiz request JSON: %v", err)
+		fmt.Fprintf(w, "data: Error: Invalid JSON payload\n\n")
+		return
+	}
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		log.Printf("[ERROR] Streaming not supported")
+		fmt.Fprintf(w, "data: Error: Streaming not supported\n\n")
+		return
+	}
+
+	err := h.service.GenerateQuizResponseStream(req.NoteIDs, req.Messages, func(token string) {
+		fmt.Fprintf(w, "data: %s\n\n", token)
+		flusher.Flush()
+	})
+
+	if err != nil {
+		log.Printf("[ERROR] Streaming quiz generation failed: %v", err)
+		fmt.Fprintf(w, "data: Error: %s\n\n", err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Streaming quiz generation completed successfully")
 }
 
 func (h *QuizHandler) writeJSONResponse(w http.ResponseWriter, statusCode int, data any) {

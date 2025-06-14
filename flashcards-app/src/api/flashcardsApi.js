@@ -19,6 +19,61 @@ export const notesApi = {
 
 export const quizApi = {
   generate: (noteIDs, messages) => api.post('/quiz/generate', { note_ids: noteIDs, messages }),
+  generateStream: (noteIDs, messages, onToken, onComplete, onError) => {
+    return new Promise((resolve, reject) => {
+      let accumulatedContent = '';
+      
+      // Send the request data via POST to initialize the stream
+      fetch(`${API_BASE_URL}/quiz/generate/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ note_ids: noteIDs, messages }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Set up EventSource for the streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        const readStream = () => {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              onComplete(accumulatedContent);
+              resolve(accumulatedContent);
+              return;
+            }
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const token = line.slice(6); // Remove 'data: ' prefix
+                if (token.trim() && !token.startsWith('Error:')) {
+                  accumulatedContent += token;
+                  onToken(token, accumulatedContent);
+                }
+              }
+            }
+            
+            readStream();
+          }).catch(error => {
+            onError(error);
+            reject(error);
+          });
+        };
+        
+        readStream();
+      }).catch(error => {
+        onError(error);
+        reject(error);
+      });
+    });
+  },
 };
 
 export const healthApi = {

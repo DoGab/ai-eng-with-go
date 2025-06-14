@@ -11,6 +11,8 @@ const QuizGenerator = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(true);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
 
   const truncateText = (text, maxLength = 200) => {
     if (text.length <= maxLength) return text;
@@ -48,18 +50,42 @@ const QuizGenerator = () => {
     }
 
     setLoading(true);
+    setIsStreaming(true);
+    setStreamingContent('');
+    
     try {
       const selectedNoteIDs = selectedNotes;
       console.log(selectedNoteIDs);
       const initialMessages = [];
 
-      const response = await quizApi.generate(selectedNoteIDs, initialMessages);
-      setMessages(response.data.messages);
-      toast.success('Quiz generated successfully!');
+      await quizApi.generateStream(
+        selectedNoteIDs, 
+        initialMessages,
+        (token, accumulatedContent) => {
+          setStreamingContent(accumulatedContent);
+        },
+        (finalContent) => {
+          const newMessage = {
+            role: 'assistant',
+            content: finalContent
+          };
+          setMessages([newMessage]);
+          setStreamingContent('');
+          setIsStreaming(false);
+          setLoading(false);
+          toast.success('Quiz generated successfully!');
+        },
+        (error) => {
+          console.error('Streaming error:', error);
+          setIsStreaming(false);
+          setLoading(false);
+          toast.error('Failed to generate quiz');
+        }
+      );
     } catch (error) {
       toast.error('Failed to generate quiz');
       console.error('Error generating quiz:', error);
-    } finally {
+      setIsStreaming(false);
       setLoading(false);
     }
   };
@@ -78,14 +104,37 @@ const QuizGenerator = () => {
     setMessages(updatedMessages);
     setCurrentMessage('');
     setLoading(true);
+    setIsStreaming(true);
+    setStreamingContent('');
 
     try {
-      const response = await quizApi.generate(selectedNoteIDs, updatedMessages);
-      setMessages(response.data.messages);
+      await quizApi.generateStream(
+        selectedNoteIDs, 
+        updatedMessages,
+        (token, accumulatedContent) => {
+          setStreamingContent(accumulatedContent);
+        },
+        (finalContent) => {
+          const newAssistantMessage = {
+            role: 'assistant',
+            content: finalContent
+          };
+          setMessages([...updatedMessages, newAssistantMessage]);
+          setStreamingContent('');
+          setIsStreaming(false);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Streaming error:', error);
+          setIsStreaming(false);
+          setLoading(false);
+          toast.error('Failed to send message');
+        }
+      );
     } catch (error) {
       toast.error('Failed to send message');
       console.error('Error sending message:', error);
-    } finally {
+      setIsStreaming(false);
       setLoading(false);
     }
   };
@@ -93,6 +142,8 @@ const QuizGenerator = () => {
   const clearConversation = () => {
     setMessages([]);
     setSelectedNotes([]);
+    setStreamingContent('');
+    setIsStreaming(false);
   };
 
   if (loadingNotes) {
@@ -143,11 +194,11 @@ const QuizGenerator = () => {
           <div className="flex gap-4">
             <button
               onClick={generateInitialQuiz}
-              disabled={selectedNotes.length === 0 || loading}
+              disabled={selectedNotes.length === 0 || loading || isStreaming}
               className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               <SparklesIcon className="h-5 w-5" />
-              {loading ? 'Generating...' : 'Generate Quiz'}
+              {loading || isStreaming ? 'Generating...' : 'Generate Quiz'}
             </button>
             
             {messages.length > 0 && (
@@ -191,15 +242,22 @@ const QuizGenerator = () => {
                 </div>
               ))}
               
-              {loading && (
+              {(loading || isStreaming) && (
                 <div className="bg-gray-50 border-l-4 border-gray-500 mr-8 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-medium text-gray-700">🤖 AI Tutor</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                    <span className="text-gray-600">Thinking...</span>
-                  </div>
+                  {isStreaming && streamingContent ? (
+                    <div className="text-gray-800 prose prose-sm max-w-none">
+                      <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                      <div className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1"></div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                      <span className="text-gray-600">{isStreaming ? 'Generating response...' : 'Thinking...'}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -212,15 +270,15 @@ const QuizGenerator = () => {
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 placeholder="Ask a question or request more quiz questions..."
                 className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                disabled={loading}
+                disabled={loading || isStreaming}
               />
               <button
                 type="submit"
-                disabled={!currentMessage.trim() || loading}
+                disabled={!currentMessage.trim() || loading || isStreaming}
                 className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
               >
                 <PaperAirplaneIcon className="h-5 w-5" />
-                Send
+                {loading || isStreaming ? 'Sending...' : 'Send'}
               </button>
             </form>
           </div>
