@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import Navigation from './components/Navigation';
 import NotesManager from './components/NotesManager';
 import QuizGenerator from './components/QuizGenerator';
+import InteractiveQuiz from './components/InteractiveQuiz';
 
 function App() {
   const [activeTab, setActiveTab] = useState('notes');
@@ -13,6 +14,8 @@ function App() {
         return <NotesManager />;
       case 'quiz':
         return <QuizGenerator />;
+      case 'interactive':
+        return <InteractiveQuiz />;
       default:
         return <NotesManager />;
     }

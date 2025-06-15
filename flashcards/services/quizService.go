@@ -686,12 +686,14 @@ BEHAVIOR GUIDELINES:
 
 2. If the user responds to your question:
    - If they give a genuine attempt to answer the quiz question, use evaluate_answer to provide feedback
+   - If they indicate they want to give up (e.g., "I don't know", "I give up", "move to the next question", "skip this", "no idea", or similar), immediately use evaluate_answer and mark their response as incorrect
    - If they go off-topic, ask for clarification, or seem confused, use continue_quiz to guide them back
 
 3. When evaluating answers:
    - Be fair and thorough in your assessment
    - Provide detailed feedback explaining why the answer is correct or incorrect
    - Give constructive guidance for improvement if the answer is wrong
+   - If the user gave up, acknowledge their decision and provide the correct answer with explanation
    - DO NOT ask follow-up questions or invite further discussion - the quiz is complete at this point
 
 4. When continuing the conversation:
@@ -703,7 +705,7 @@ BEHAVIOR GUIDELINES:
 
 5. Keep responses conversational and engaging, not robotic or formal.
 
-IMPORTANT: Only call evaluate_answer when you're confident the user has made a genuine attempt to answer the quiz question. Use continue_quiz for everything else.`
+IMPORTANT: Call evaluate_answer when the user makes a genuine attempt to answer OR when they explicitly give up/surrender. Use continue_quiz for everything else.`
 }
 
 func (qs *QuizService) buildQuizConductPrompt(notes []*models.Note, topics []string, messages []models.Message) string {

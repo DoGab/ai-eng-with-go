@@ -71,6 +71,16 @@ export const quizApi = {
   },
 };
 
+export const interactiveQuizApi = {
+  configure: (messages) => api.post('/quiz/configure', { messages }),
+  rank: (noteIDs, topics) => api.post('/quiz/rank', { note_ids: noteIDs, topics }),
+  conduct: (noteIDs, topics, messages) => api.post('/quiz/conduct', { 
+    note_ids: noteIDs, 
+    topics: topics, 
+    messages 
+  })
+};
+
 export const healthApi = {
   check: () => api.get('/health'),
 };

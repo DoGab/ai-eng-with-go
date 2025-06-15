@@ -1,10 +1,11 @@
 import React from 'react';
-import { BookOpenIcon, SparklesIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, SparklesIcon, AcademicCapIcon, HeartIcon } from '@heroicons/react/24/outline';
 
 const Navigation = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'notes', name: 'Notes', icon: BookOpenIcon },
     { id: 'quiz', name: 'AI Quiz', icon: SparklesIcon },
+    { id: 'interactive', name: 'Interactive Quiz', icon: AcademicCapIcon },
   ];
 
   return (
