@@ -30,7 +30,7 @@ func main() {
 	noteService := services.NewNoteService(noteRepo)
 	noteHandler := handlers.NewNoteHandler(noteService)
 
-	quizService := quiz.NewQuizService(noteService, cfg.OpenAIAPIKey)
+	quizService := quiz.NewService(noteService, cfg.OpenAIAPIKey)
 	quizHandler := handlers.NewQuizHandler(quizService)
 
 	router := mux.NewRouter()

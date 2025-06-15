@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"strings"
 
 	"flashcards/models"
 
@@ -13,7 +14,57 @@ import (
 	"github.com/tmc/langchaingo/llms"
 )
 
-func (qs *QuizService) RankNotes(noteIDs []int, topics []string) (*models.NoteRankResponse, error) {
+var rankNotesTools = []llms.Tool{
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "rank_notes",
+			Description: "Rank the provided notes by relevance to the given topics",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"rankings": map[string]any{
+						"type":        "array",
+						"description": "Array of note rankings with relevance scores",
+						"items": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"note_id": map[string]any{
+									"type":        "integer",
+									"description": "The ID of the note being ranked",
+								},
+								"score": map[string]any{
+									"type":        "number",
+									"description": "Relevance score from 0.0 to 1.0, where 1.0 is most relevant",
+									"minimum":     0.0,
+									"maximum":     1.0,
+								},
+							},
+							"required": []string{"note_id", "score"},
+						},
+					},
+				},
+				"required": []string{"rankings"},
+			},
+		},
+	},
+}
+
+func buildRankNotesPrompt(notes []*models.Note, topics []string) string {
+	var prompt strings.Builder
+	prompt.WriteString("Rank the following notes by their relevance to these topics: ")
+	prompt.WriteString(strings.Join(topics, ", "))
+	prompt.WriteString("\n\nNotes to rank:\n")
+
+	for _, note := range notes {
+		prompt.WriteString(fmt.Sprintf("Note ID %d:\n%s\n\n", note.ID, note.Content))
+	}
+
+	prompt.WriteString("Please rank each note with a relevance score from 0.0 to 1.0, where 1.0 means highly relevant and 0.0 means not relevant at all.")
+	return prompt.String()
+}
+
+func (qs *Service) RankNotes(noteIDs []int, topics []string) (*models.NoteRankResponse, error) {
 	log.Printf("[INFO] Starting note ranking for %d notes with topics: %v", len(noteIDs), topics)
 
 	if len(noteIDs) == 0 {
@@ -47,7 +98,7 @@ func (qs *QuizService) RankNotes(noteIDs []int, topics []string) (*models.NoteRa
 
 	log.Printf("[INFO] Found %d notes to rank", len(targetNotes))
 
-	prompt := qs.buildRankingPrompt(targetNotes, topics)
+	prompt := buildRankNotesPrompt(targetNotes, topics)
 
 	ctx := context.Background()
 	messageHistory := []llms.MessageContent{
@@ -56,7 +107,7 @@ func (qs *QuizService) RankNotes(noteIDs []int, topics []string) (*models.NoteRa
 
 	log.Printf("[INFO] Calling LLM for note ranking")
 	resp, err := qs.llm.GenerateContent(ctx, messageHistory,
-		llms.WithTools(noteRankingTools),
+		llms.WithTools(rankNotesTools),
 		llms.WithTemperature(0.3),
 		llms.WithToolChoice("required"))
 	if err != nil {

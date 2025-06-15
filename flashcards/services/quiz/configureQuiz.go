@@ -12,12 +12,80 @@ import (
 	"github.com/tmc/langchaingo/llms"
 )
 
-func (qs *QuizService) ConfigureQuiz(messages []models.Message) (*models.QuizConfigResponse, error) {
+const (
+	configQuizSystemPrompt = `You are a quiz configuration assistant. Your job is to interview users to understand what kind of quiz they want to create.
+
+Ask about:
+1. How many questions they want (if not specified)
+2. What topics/subjects they want to focus on (if not specified)
+
+Be conversational and helpful. Once you have enough information to create a quiz configuration, call the finalize_quiz_config function with the appropriate parameters.
+
+IMPORTANT: When extracting topics for search, be very precise and only use the EXACT keywords the user mentioned. Do not expand or interpret their request - use only their specific words. For example:
+- If user says "scalability" → use ["scalability"]
+- If user says "database performance" → use ["database", "performance"] 
+- If user says "caching" → use ["caching"]
+- Do NOT add related terms like "distributed systems" unless the user specifically mentioned them.
+
+If you need more information, call continue_interview to ask follow-up questions.`
+)
+
+var configQuizTools = []llms.Tool{
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "continue_interview",
+			Description: "Continue interviewing the user to gather more information about their quiz preferences",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"message": map[string]any{
+						"type":        "string",
+						"description": "The message to send to the user to continue the interview",
+					},
+				},
+				"required": []string{"message"},
+			},
+		},
+	},
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "finalize_quiz_config",
+			Description: "Finalize the quiz configuration based on the user's preferences",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"question_count": map[string]any{
+						"type":        "integer",
+						"description": "Number of questions for the quiz",
+						"minimum":     1,
+						"maximum":     50,
+					},
+					"topics": map[string]any{
+						"type":        "array",
+						"description": "Array of EXACT topic keywords that the user specifically mentioned. Do not add related or interpreted terms - only use the user's exact words.",
+						"items": map[string]any{
+							"type": "string",
+						},
+					},
+					"reasoning": map[string]any{
+						"type":        "string",
+						"description": "Brief explanation of the configuration choices",
+					},
+				},
+				"required": []string{"question_count", "topics", "reasoning"},
+			},
+		},
+	},
+}
+
+func (qs *Service) ConfigureQuiz(messages []models.Message) (*models.QuizConfigResponse, error) {
 	log.Printf("[INFO] Starting quiz configuration with %d existing messages", len(messages))
 
 	ctx := context.Background()
 	messageHistory := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, QUIZ_CONFIG_SYSTEM_PROMPT),
+		llms.TextParts(llms.ChatMessageTypeSystem, configQuizSystemPrompt),
 	}
 
 	for _, msg := range messages {
@@ -32,7 +100,7 @@ func (qs *QuizService) ConfigureQuiz(messages []models.Message) (*models.QuizCon
 
 	log.Printf("[INFO] Calling LLM for quiz configuration")
 	resp, err := qs.llm.GenerateContent(ctx, messageHistory, 
-		llms.WithTools(quizConfigTools), 
+		llms.WithTools(configQuizTools), 
 		llms.WithTemperature(0.7),
 		llms.WithToolChoice("required"))
 	if err != nil {

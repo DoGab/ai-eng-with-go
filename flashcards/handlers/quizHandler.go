@@ -23,10 +23,10 @@ type QuizResponse struct {
 }
 
 type QuizHandler struct {
-	service *quiz.QuizService
+	service *quiz.Service
 }
 
-func NewQuizHandler(service *quiz.QuizService) *QuizHandler {
+func NewQuizHandler(service *quiz.Service) *QuizHandler {
 	return &QuizHandler{service: service}
 }
 

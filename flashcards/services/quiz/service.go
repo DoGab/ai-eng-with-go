@@ -9,7 +9,7 @@ import (
 	"github.com/tmc/langchaingo/llms/openai"
 )
 
-type QuizService struct {
+type Service struct {
 	noteService *services.NoteService
 	llm         llms.Model
 }
@@ -48,7 +48,7 @@ type GenerateQuizResult struct {
 	Content string `json:"content"`
 }
 
-func NewQuizService(noteService *services.NoteService, apiKey string) *QuizService {
+func NewService(noteService *services.NoteService, apiKey string) *Service {
 	llm, err := openai.New(
 		openai.WithModel("gpt-4o-mini"),
 		openai.WithToken(apiKey),
@@ -57,7 +57,7 @@ func NewQuizService(noteService *services.NoteService, apiKey string) *QuizServi
 		panic(fmt.Sprintf("Failed to create OpenAI client: %v", err))
 	}
 
-	return &QuizService{
+	return &Service{
 		noteService: noteService,
 		llm:         llm,
 	}
