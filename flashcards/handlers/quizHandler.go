@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"flashcards/models"
-	"flashcards/services"
+	"flashcards/services/quiz"
 
 	"github.com/gorilla/mux"
 )
@@ -23,10 +23,10 @@ type QuizResponse struct {
 }
 
 type QuizHandler struct {
-	service *services.QuizService
+	service *quiz.QuizService
 }
 
-func NewQuizHandler(service *services.QuizService) *QuizHandler {
+func NewQuizHandler(service *quiz.QuizService) *QuizHandler {
 	return &QuizHandler{service: service}
 }
 
@@ -55,9 +55,14 @@ func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updatedMessages := append(req.Messages, models.Message{
+		Role:    "assistant",
+		Content: result.Content,
+	})
+
 	response := QuizResponse{
-		NoteIDs:  result.NoteIDs,
-		Messages: result.Messages,
+		NoteIDs:  req.NoteIDs,
+		Messages: updatedMessages,
 	}
 
 	log.Printf("[INFO] Quiz generation completed successfully")

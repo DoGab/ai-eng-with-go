@@ -9,6 +9,7 @@ import (
 	"flashcards/db"
 	"flashcards/handlers"
 	"flashcards/services"
+	"flashcards/services/quiz"
 
 	"github.com/gorilla/mux"
 )
@@ -29,7 +30,7 @@ func main() {
 	noteService := services.NewNoteService(noteRepo)
 	noteHandler := handlers.NewNoteHandler(noteService)
 
-	quizService := services.NewQuizService(noteService, cfg.OpenAIAPIKey)
+	quizService := quiz.NewQuizService(noteService, cfg.OpenAIAPIKey)
 	quizHandler := handlers.NewQuizHandler(quizService)
 
 	router := mux.NewRouter()
