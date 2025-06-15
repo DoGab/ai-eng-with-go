@@ -152,7 +152,7 @@ func (s *NoteService) validateUpdateRequest(req *models.UpdateNoteRequest) error
 }
 
 func (s *NoteService) SearchNotesByContent(searchTerms []string) ([]*models.Note, error) {
-	log.Printf("[INFO] Starting note search with %d search terms", len(searchTerms))
+	log.Printf("[INFO] Starting note search with %d search terms: %v", len(searchTerms), searchTerms)
 
 	notes, err := s.GetAllNotes()
 	if err != nil {
@@ -171,40 +171,62 @@ func (s *NoteService) SearchNotesByContent(searchTerms []string) ([]*models.Note
 		}
 	}
 
-	log.Printf("[INFO] Found %d notes matching search criteria", len(matchingNotes))
+	log.Printf("[INFO] Found %d notes matching search criteria out of %d total notes", len(matchingNotes), len(notes))
 	return matchingNotes, nil
 }
 
 func (s *NoteService) noteMatchesSearch(note *models.Note, searchTerms []string) bool {
-	noteContent := note.Content
-	words := strings.Fields(strings.ToLower(noteContent))
+	noteContent := strings.ToLower(note.Content)
+	words := strings.Fields(noteContent)
 	
 	for _, term := range searchTerms {
-		// Exact match (highest priority)
-		if fuzzy.MatchFold(term, noteContent) {
+		termLower := strings.ToLower(term)
+		
+		// 1. Exact substring match (highest priority)
+		if strings.Contains(noteContent, termLower) {
+			log.Printf("[DEBUG] Note %d: Exact match for term '%s'", note.ID, term)
 			return true
 		}
 		
-		// Clean words by removing punctuation
+		// 2. Clean words by removing punctuation
 		cleanWords := make([]string, 0, len(words))
 		for _, word := range words {
-			cleanWord := strings.Trim(word, ".,!?;:()[]{}\"'")
-			if len(cleanWord) > 0 {
+			cleanWord := strings.Trim(word, ".,!?;:()[]{}\"'-")
+			if len(cleanWord) > 2 { // Only consider words longer than 2 characters
 				cleanWords = append(cleanWords, cleanWord)
 			}
 		}
 		
-		// Use fuzzy search against individual words
-		matches := fuzzy.Find(term, cleanWords)
-		if len(matches) > 0 {
-			return true
-		}
-		
-		// Also check against the full content for partial matches
-		if len(term) > 2 && fuzzy.MatchFold(term, noteContent) {
-			return true
+		// 3. Use RankMatch with Levenshtein distance for stricter matching
+		for _, cleanWord := range cleanWords {
+			distance := fuzzy.RankMatchFold(termLower, cleanWord)
+			
+			// Only accept matches if:
+			// - Distance is not -1 (means it's a valid match)
+			// - Distance is within acceptable threshold based on term length
+			if distance != -1 {
+				maxDistance := s.calculateMaxDistance(termLower)
+				if distance <= maxDistance {
+					log.Printf("[DEBUG] Note %d: Fuzzy match for term '%s' -> word '%s' (distance: %d, max: %d)", 
+						note.ID, term, cleanWord, distance, maxDistance)
+					return true
+				}
+			}
 		}
 	}
 	
 	return false
+}
+
+func (s *NoteService) calculateMaxDistance(term string) int {
+	termLen := len(term)
+	
+	// Very strict distance thresholds:
+	if termLen <= 4 {
+		return 1 // Very short terms: allow only 1 character difference
+	} else if termLen <= 7 {
+		return 2 // Medium terms: allow 2 character differences
+	} else {
+		return 3 // Longer terms: allow 3 character differences
+	}
 }

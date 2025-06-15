@@ -20,20 +20,11 @@ func main() {
 		log.Fatal("DB_URL environment variable is required")
 	}
 
-	todoRepo, err := db.NewPostgresTodoRepository(cfg.DatabaseURL)
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	defer todoRepo.Close()
-
 	noteRepo, err := db.NewPostgresNoteRepository(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize note database: %v", err)
 	}
 	defer noteRepo.Close()
-
-	todoService := services.NewTodoService(todoRepo)
-	todoHandler := handlers.NewTodoHandler(todoService)
 
 	noteService := services.NewNoteService(noteRepo)
 	noteHandler := handlers.NewNoteHandler(noteService)
@@ -50,7 +41,6 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	}).Methods("OPTIONS")
 
-	todoHandler.RegisterRoutes(router)
 	noteHandler.RegisterRoutes(router)
 	quizHandler.RegisterRoutes(router)
 
@@ -72,7 +62,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Expose-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		log.Println("CORS MIDDLEWARE")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return

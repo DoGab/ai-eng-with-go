@@ -34,6 +34,8 @@ func (h *QuizHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/quiz/generate", h.GenerateQuiz).Methods("POST")
 	router.HandleFunc("/quiz/generate/stream", h.GenerateQuizStream).Methods("POST")
 	router.HandleFunc("/quiz/configure", h.ConfigureQuiz).Methods("POST")
+	router.HandleFunc("/quiz/rank", h.RankNotes).Methods("POST")
+	router.HandleFunc("/quiz/conduct", h.ConductQuiz).Methods("POST")
 }
 
 func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
@@ -129,5 +131,71 @@ func (h *QuizHandler) ConfigureQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("[INFO] Quiz configuration completed successfully, type: %s", result.Type)
+	h.writeJSONResponse(w, http.StatusOK, result)
+}
+
+func (h *QuizHandler) RankNotes(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received note ranking request")
+
+	var req models.NoteRankRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode note ranking request JSON: %v", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	if len(req.NoteIDs) == 0 {
+		log.Printf("[ERROR] No note IDs provided in ranking request")
+		h.writeErrorResponse(w, http.StatusBadRequest, "At least one note ID is required")
+		return
+	}
+
+	if len(req.Topics) == 0 {
+		log.Printf("[ERROR] No topics provided in ranking request")
+		h.writeErrorResponse(w, http.StatusBadRequest, "At least one topic is required")
+		return
+	}
+
+	result, err := h.service.RankNotes(req.NoteIDs, req.Topics)
+	if err != nil {
+		log.Printf("[ERROR] Note ranking failed: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Note ranking completed successfully, ranked %d notes", len(result.RankedNotes))
+	h.writeJSONResponse(w, http.StatusOK, result)
+}
+
+func (h *QuizHandler) ConductQuiz(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received quiz conduct request")
+
+	var req models.QuizConductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode quiz conduct request JSON: %v", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	if len(req.NoteIDs) == 0 {
+		log.Printf("[ERROR] No note IDs provided in quiz conduct request")
+		h.writeErrorResponse(w, http.StatusBadRequest, "At least one note ID is required")
+		return
+	}
+
+	if len(req.Topics) == 0 {
+		log.Printf("[ERROR] No topics provided in quiz conduct request")
+		h.writeErrorResponse(w, http.StatusBadRequest, "At least one topic is required")
+		return
+	}
+
+	result, err := h.service.ConductQuiz(req.NoteIDs, req.Topics, req.Messages)
+	if err != nil {
+		log.Printf("[ERROR] Quiz conduct failed: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Quiz conduct completed successfully, response type: %s", result.Type)
 	h.writeJSONResponse(w, http.StatusOK, result)
 }

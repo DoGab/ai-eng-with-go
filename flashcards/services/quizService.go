@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 
 	"flashcards/models"
@@ -48,9 +49,13 @@ Ask about:
 
 Be conversational and helpful. Once you have enough information to create a quiz configuration, call the finalize_quiz_config function with the appropriate parameters.
 
-If you need more information, call continue_interview to ask follow-up questions.
+IMPORTANT: When extracting topics for search, be very precise and only use the EXACT keywords the user mentioned. Do not expand or interpret their request - use only their specific words. For example:
+- If user says "scalability" → use ["scalability"]
+- If user says "database performance" → use ["database", "performance"] 
+- If user says "caching" → use ["caching"]
+- Do NOT add related terms like "distributed systems" unless the user specifically mentioned them.
 
-Available notes cover various topics. When the user mentions a topic, try to match it to available content.`
+If you need more information, call continue_interview to ask follow-up questions.`
 )
 
 type QuizService struct {
@@ -66,6 +71,25 @@ type FinalizeConfigParams struct {
 	QuestionCount int      `json:"question_count"`
 	Topics        []string `json:"topics"`
 	Reasoning     string   `json:"reasoning"`
+}
+
+type RankNotesParams struct {
+	Rankings []NoteRanking `json:"rankings"`
+}
+
+type NoteRanking struct {
+	NoteID int     `json:"note_id"`
+	Score  float64 `json:"score"`
+}
+
+type ContinueQuizParams struct {
+	Message string `json:"message"`
+}
+
+type EvaluateAnswerParams struct {
+	Message  string `json:"message"`
+	Correct  bool   `json:"correct"`
+	Feedback string `json:"feedback"`
 }
 
 var quizConfigTools = []llms.Tool{
@@ -102,7 +126,7 @@ var quizConfigTools = []llms.Tool{
 					},
 					"topics": map[string]any{
 						"type":        "array",
-						"description": "Array of topic keywords to search for in notes",
+						"description": "Array of EXACT topic keywords that the user specifically mentioned. Do not add related or interpreted terms - only use the user's exact words.",
 						"items": map[string]any{
 							"type": "string",
 						},
@@ -113,6 +137,87 @@ var quizConfigTools = []llms.Tool{
 					},
 				},
 				"required": []string{"question_count", "topics", "reasoning"},
+			},
+		},
+	},
+}
+
+var noteRankingTools = []llms.Tool{
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "rank_notes",
+			Description: "Rank the provided notes by relevance to the given topics",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"rankings": map[string]any{
+						"type":        "array",
+						"description": "Array of note rankings with relevance scores",
+						"items": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"note_id": map[string]any{
+									"type":        "integer",
+									"description": "The ID of the note being ranked",
+								},
+								"score": map[string]any{
+									"type":        "number",
+									"description": "Relevance score from 0.0 to 1.0, where 1.0 is most relevant",
+									"minimum":     0.0,
+									"maximum":     1.0,
+								},
+							},
+							"required": []string{"note_id", "score"},
+						},
+					},
+				},
+				"required": []string{"rankings"},
+			},
+		},
+	},
+}
+
+var quizConductTools = []llms.Tool{
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "continue_quiz",
+			Description: "Continue the quiz conversation, provide clarifications, or steer user back to answering the question",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"message": map[string]any{
+						"type":        "string",
+						"description": "The message to continue the conversation with the user",
+					},
+				},
+				"required": []string{"message"},
+			},
+		},
+	},
+	{
+		Type: "function",
+		Function: &llms.FunctionDefinition{
+			Name:        "evaluate_answer",
+			Description: "Evaluate the user's answer to the quiz question and provide final feedback",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"message": map[string]any{
+						"type":        "string",
+						"description": "The response message to the user after evaluation",
+					},
+					"correct": map[string]any{
+						"type":        "boolean",
+						"description": "Whether the user's answer is correct",
+					},
+					"feedback": map[string]any{
+						"type":        "string",
+						"description": "Detailed feedback explaining why the answer is correct or incorrect",
+					},
+				},
+				"required": []string{"message", "correct", "feedback"},
 			},
 		},
 	},
@@ -302,11 +407,13 @@ func (qs *QuizService) ConfigureQuiz(messages []models.Message) (*models.QuizCon
 			return nil, fmt.Errorf("failed to parse finalize_quiz_config arguments: %w", err)
 		}
 
+		log.Printf("[INFO] Searching for notes with topics: %v", params.Topics)
 		matchingNotes, err := qs.noteService.SearchNotesByContent(params.Topics)
 		if err != nil {
 			log.Printf("[ERROR] Failed to search notes by content: %v", err)
 			return nil, fmt.Errorf("failed to search notes by content: %w", err)
 		}
+		log.Printf("[INFO] Found %d matching notes for topics %v", len(matchingNotes), params.Topics)
 
 		if len(matchingNotes) == 0 {
 			log.Printf("[ERROR] No notes found matching topics: %v", params.Topics)
@@ -339,4 +446,290 @@ func (qs *QuizService) ConfigureQuiz(messages []models.Message) (*models.QuizCon
 		log.Printf("[ERROR] Unknown function call: %s", toolCall.FunctionCall.Name)
 		return nil, fmt.Errorf("unknown function call: %s", toolCall.FunctionCall.Name)
 	}
+}
+
+func (qs *QuizService) RankNotes(noteIDs []int, topics []string) (*models.NoteRankResponse, error) {
+	log.Printf("[INFO] Starting note ranking for %d notes with topics: %v", len(noteIDs), topics)
+
+	if len(noteIDs) == 0 {
+		return nil, fmt.Errorf("at least one note ID is required")
+	}
+	
+	if len(topics) == 0 {
+		return nil, fmt.Errorf("at least one topic is required")
+	}
+
+	// Get all notes to filter by IDs
+	allNotes, err := qs.noteService.GetAllNotes()
+	if err != nil {
+		log.Printf("[ERROR] Failed to retrieve notes: %v", err)
+		return nil, fmt.Errorf("failed to retrieve notes: %w", err)
+	}
+
+	// Filter notes by provided IDs using lo library
+	targetNotes := lo.Filter(allNotes, func(note *models.Note, _ int) bool {
+		return lo.Contains(noteIDs, note.ID)
+	})
+
+	// Check if all requested note IDs were found
+	if len(targetNotes) != len(noteIDs) {
+		foundIDs := lo.Map(targetNotes, func(note *models.Note, _ int) int {
+			return note.ID
+		})
+		missingIDs := lo.Filter(noteIDs, func(noteID int, _ int) bool {
+			return !lo.Contains(foundIDs, noteID)
+		})
+		log.Printf("[ERROR] Note IDs not found: %v", missingIDs)
+		return nil, fmt.Errorf("note IDs not found: %v", missingIDs)
+	}
+
+	log.Printf("[INFO] Found %d notes to rank", len(targetNotes))
+
+	// Prepare prompt for AI ranking
+	prompt := qs.buildRankingPrompt(targetNotes, topics)
+
+	ctx := context.Background()
+	messageHistory := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeHuman, prompt),
+	}
+
+	log.Printf("[INFO] Calling LLM for note ranking")
+	resp, err := qs.llm.GenerateContent(ctx, messageHistory,
+		llms.WithTools(noteRankingTools),
+		llms.WithTemperature(0.3),
+		llms.WithToolChoice("required"))
+	if err != nil {
+		log.Printf("[ERROR] Failed to generate ranking response: %v", err)
+		return nil, fmt.Errorf("failed to generate ranking response: %w", err)
+	}
+
+	if len(resp.Choices) == 0 || len(resp.Choices[0].ToolCalls) == 0 {
+		log.Printf("[ERROR] No tool calls in LLM ranking response")
+		return nil, fmt.Errorf("no tool calls in LLM ranking response")
+	}
+
+	toolCall := resp.Choices[0].ToolCalls[0]
+	if toolCall.FunctionCall.Name != "rank_notes" {
+		log.Printf("[ERROR] Unexpected function call: %s", toolCall.FunctionCall.Name)
+		return nil, fmt.Errorf("unexpected function call: %s", toolCall.FunctionCall.Name)
+	}
+
+	var params RankNotesParams
+	if err := json.Unmarshal([]byte(toolCall.FunctionCall.Arguments), &params); err != nil {
+		log.Printf("[ERROR] Failed to parse ranking arguments: %v", err)
+		return nil, fmt.Errorf("failed to parse ranking arguments: %w", err)
+	}
+
+	// Convert to response format using lo.Map
+	rankedNotes := lo.Map(params.Rankings, func(ranking NoteRanking, _ int) models.RankedNote {
+		return models.RankedNote{
+			NoteID: ranking.NoteID,
+			Score:  ranking.Score,
+		}
+	})
+
+	// Sort by score descending using slices.SortFunc
+	slices.SortFunc(rankedNotes, func(a, b models.RankedNote) int {
+		if a.Score > b.Score {
+			return -1
+		}
+		if a.Score < b.Score {
+			return 1
+		}
+		return 0
+	})
+
+	log.Printf("[INFO] Successfully ranked %d notes", len(rankedNotes))
+	return &models.NoteRankResponse{
+		RankedNotes: rankedNotes,
+	}, nil
+}
+
+func (qs *QuizService) buildRankingPrompt(notes []*models.Note, topics []string) string {
+	var prompt strings.Builder
+	
+	prompt.WriteString("Please rank the following notes by relevance to these topics: ")
+	prompt.WriteString(strings.Join(topics, ", "))
+	prompt.WriteString("\n\nAssign each note a relevance score from 0.0 to 1.0 where:\n")
+	prompt.WriteString("- 1.0 = Highly relevant and directly addresses the topics\n")
+	prompt.WriteString("- 0.7-0.9 = Moderately relevant with some connection to topics\n")
+	prompt.WriteString("- 0.4-0.6 = Somewhat relevant with tangential connection\n")
+	prompt.WriteString("- 0.1-0.3 = Minimally relevant with weak connection\n")
+	prompt.WriteString("- 0.0 = Not relevant to the topics\n\n")
+	
+	prompt.WriteString("Notes to rank:\n\n")
+	for _, note := range notes {
+		prompt.WriteString(fmt.Sprintf("Note ID %d:\n%s\n\n", note.ID, note.Content))
+	}
+	
+	prompt.WriteString("Use the rank_notes function to provide your rankings.")
+	
+	return prompt.String()
+}
+
+func (qs *QuizService) ConductQuiz(noteIDs []int, topics []string, messages []models.Message) (*models.QuizConductResponse, error) {
+	log.Printf("[INFO] Starting quiz conduct with %d notes, topics: %v, %d messages", len(noteIDs), topics, len(messages))
+
+	if len(noteIDs) == 0 {
+		return nil, fmt.Errorf("at least one note ID is required")
+	}
+
+	if len(topics) == 0 {
+		return nil, fmt.Errorf("at least one topic is required")
+	}
+
+	// Get notes for quiz content
+	allNotes, err := qs.noteService.GetAllNotes()
+	if err != nil {
+		log.Printf("[ERROR] Failed to retrieve notes: %v", err)
+		return nil, fmt.Errorf("failed to retrieve notes: %w", err)
+	}
+
+	targetNotes := lo.Filter(allNotes, func(note *models.Note, _ int) bool {
+		return lo.Contains(noteIDs, note.ID)
+	})
+
+	if len(targetNotes) != len(noteIDs) {
+		foundIDs := lo.Map(targetNotes, func(note *models.Note, _ int) int {
+			return note.ID
+		})
+		missingIDs := lo.Filter(noteIDs, func(noteID int, _ int) bool {
+			return !lo.Contains(foundIDs, noteID)
+		})
+		log.Printf("[ERROR] Note IDs not found: %v", missingIDs)
+		return nil, fmt.Errorf("note IDs not found: %v", missingIDs)
+	}
+
+	// Build conversation prompt
+	prompt := qs.buildQuizConductPrompt(targetNotes, topics, messages)
+
+	ctx := context.Background()
+	messageHistory := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, qs.getQuizConductSystemPrompt()),
+	}
+
+	// Add conversation history
+	for _, msg := range messages {
+		var msgType llms.ChatMessageType
+		if msg.Role == "user" {
+			msgType = llms.ChatMessageTypeHuman
+		} else {
+			msgType = llms.ChatMessageTypeAI
+		}
+		messageHistory = append(messageHistory, llms.TextParts(msgType, msg.Content))
+	}
+
+	// Add the current prompt
+	messageHistory = append(messageHistory, llms.TextParts(llms.ChatMessageTypeHuman, prompt))
+
+	log.Printf("[INFO] Calling LLM for quiz conduct")
+	resp, err := qs.llm.GenerateContent(ctx, messageHistory,
+		llms.WithTools(quizConductTools),
+		llms.WithTemperature(0.7),
+		llms.WithToolChoice("required"))
+	if err != nil {
+		log.Printf("[ERROR] Failed to generate quiz conduct response: %v", err)
+		return nil, fmt.Errorf("failed to generate quiz conduct response: %w", err)
+	}
+
+	if len(resp.Choices) == 0 || len(resp.Choices[0].ToolCalls) == 0 {
+		log.Printf("[ERROR] No tool calls in LLM quiz conduct response")
+		return nil, fmt.Errorf("no tool calls in LLM quiz conduct response")
+	}
+
+	toolCall := resp.Choices[0].ToolCalls[0]
+	log.Printf("[INFO] LLM called function: %s", toolCall.FunctionCall.Name)
+
+	switch toolCall.FunctionCall.Name {
+	case "continue_quiz":
+		var params ContinueQuizParams
+		if err := json.Unmarshal([]byte(toolCall.FunctionCall.Arguments), &params); err != nil {
+			log.Printf("[ERROR] Failed to parse continue_quiz arguments: %v", err)
+			return nil, fmt.Errorf("failed to parse continue_quiz arguments: %w", err)
+		}
+
+		return &models.QuizConductResponse{
+			Type:       "continue",
+			Message:    params.Message,
+			Evaluation: nil,
+		}, nil
+
+	case "evaluate_answer":
+		var params EvaluateAnswerParams
+		if err := json.Unmarshal([]byte(toolCall.FunctionCall.Arguments), &params); err != nil {
+			log.Printf("[ERROR] Failed to parse evaluate_answer arguments: %v", err)
+			return nil, fmt.Errorf("failed to parse evaluate_answer arguments: %w", err)
+		}
+
+		evaluation := &models.QuizEvaluation{
+			Correct:  params.Correct,
+			Feedback: params.Feedback,
+		}
+
+		return &models.QuizConductResponse{
+			Type:       "evaluate",
+			Message:    params.Message,
+			Evaluation: evaluation,
+		}, nil
+
+	default:
+		log.Printf("[ERROR] Unknown function call: %s", toolCall.FunctionCall.Name)
+		return nil, fmt.Errorf("unknown function call: %s", toolCall.FunctionCall.Name)
+	}
+}
+
+func (qs *QuizService) getQuizConductSystemPrompt() string {
+	return `You are an interactive quiz assistant. Your role is to conduct engaging quiz sessions based on study notes.
+
+BEHAVIOR GUIDELINES:
+1. If this is the start of a conversation (no previous messages), generate ONE thoughtful, open-ended question based on the provided notes and topics.
+
+2. If the user responds to your question:
+   - If they give a genuine attempt to answer the quiz question, use evaluate_answer to provide feedback
+   - If they go off-topic, ask for clarification, or seem confused, use continue_quiz to guide them back
+
+3. When evaluating answers:
+   - Be fair and thorough in your assessment
+   - Provide detailed feedback explaining why the answer is correct or incorrect
+   - Give constructive guidance for improvement if the answer is wrong
+   - DO NOT ask follow-up questions or invite further discussion - the quiz is complete at this point
+
+4. When continuing the conversation:
+   - Be supportive and encouraging
+   - Help clarify the question if the user seems confused
+   - Gently redirect off-topic discussions back to the quiz
+   - CRITICAL: When providing clarifications, do NOT reveal or hint at the correct answer
+   - Explain concepts or terms without giving away what the user should say in their response
+
+5. Keep responses conversational and engaging, not robotic or formal.
+
+IMPORTANT: Only call evaluate_answer when you're confident the user has made a genuine attempt to answer the quiz question. Use continue_quiz for everything else.`
+}
+
+func (qs *QuizService) buildQuizConductPrompt(notes []*models.Note, topics []string, messages []models.Message) string {
+	var prompt strings.Builder
+
+	if len(messages) == 0 {
+		// First message - generate initial question
+		prompt.WriteString("Generate a thoughtful quiz question based on these study materials.\n\n")
+		prompt.WriteString("Focus areas: ")
+		prompt.WriteString(strings.Join(topics, ", "))
+		prompt.WriteString("\n\nStudy materials:\n")
+		for _, note := range notes {
+			prompt.WriteString(fmt.Sprintf("- %s\n", note.Content))
+		}
+		prompt.WriteString("\nGenerate ONE open-ended question that tests understanding of these concepts.")
+	} else {
+		// Continuing conversation - provide context
+		prompt.WriteString("Continue the quiz conversation based on the user's latest response.\n\n")
+		prompt.WriteString("Quiz topics: ")
+		prompt.WriteString(strings.Join(topics, ", "))
+		prompt.WriteString("\n\nReference materials:\n")
+		for _, note := range notes {
+			prompt.WriteString(fmt.Sprintf("- %s\n", note.Content))
+		}
+		prompt.WriteString("\nEvaluate if the user has answered the question or if they need guidance to get back on track.")
+	}
+
+	return prompt.String()
 }

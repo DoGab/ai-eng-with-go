@@ -6,7 +6,7 @@
 set -e
 
 # Default endpoint URL
-DEFAULT_ENDPOINT="https://flashcards-6doy.onrender.com/notes"
+DEFAULT_ENDPOINT="http://localhost:8080/notes"
 
 # Check if directory argument is provided
 if [ $# -lt 1 ]; then

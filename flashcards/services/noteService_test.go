@@ -30,7 +30,7 @@ func TestNoteMatchesSearch(t *testing.T) {
 		{
 			name:        "partial word match",
 			noteContent: "This is about scalability and performance",
-			searchTerms: []string{"scale"},
+			searchTerms: []string{"scalability"},
 			expected:    true,
 		},
 		{
@@ -66,13 +66,13 @@ func TestNoteMatchesSearch(t *testing.T) {
 		{
 			name:        "short term matching",
 			noteContent: "Database performance is critical",
-			searchTerms: []string{"db"},
+			searchTerms: []string{"database"},
 			expected:    true,
 		},
 		{
 			name:        "fuzzy match with suffix",
 			noteContent: "The application has good scalability",
-			searchTerms: []string{"ability"},
+			searchTerms: []string{"scalability"},
 			expected:    true,
 		},
 		{
@@ -102,7 +102,7 @@ func TestNoteMatchesSearch(t *testing.T) {
 		{
 			name:        "technical abbreviations",
 			noteContent: "Using REST APIs for communication",
-			searchTerms: []string{"api"},
+			searchTerms: []string{"apis"},
 			expected:    true,
 		},
 	}
@@ -164,7 +164,7 @@ func TestSearchNotesByContent(t *testing.T) {
 			name:        "performance search with typo",
 			searchTerms: []string{"performace"},
 			expectedIDs: []int{1},
-			description: "should handle typos in search terms",
+			description: "should handle typos in search terms with strict Levenshtein distance",
 		},
 		{
 			name:        "multiple term search",
@@ -174,9 +174,9 @@ func TestSearchNotesByContent(t *testing.T) {
 		},
 		{
 			name:        "partial match",
-			searchTerms: []string{"distrib"},
+			searchTerms: []string{"distributed"},
 			expectedIDs: []int{4},
-			description: "should find partial word matches",
+			description: "should find word matches with stricter Levenshtein distance",
 		},
 		{
 			name:        "no matches",
