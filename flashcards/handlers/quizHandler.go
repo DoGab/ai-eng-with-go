@@ -33,6 +33,7 @@ func NewQuizHandler(service *services.QuizService) *QuizHandler {
 func (h *QuizHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/quiz/generate", h.GenerateQuiz).Methods("POST")
 	router.HandleFunc("/quiz/generate/stream", h.GenerateQuizStream).Methods("POST")
+	router.HandleFunc("/quiz/configure", h.ConfigureQuiz).Methods("POST")
 }
 
 func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
@@ -108,4 +109,25 @@ func (h *QuizHandler) writeErrorResponse(w http.ResponseWriter, statusCode int, 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+func (h *QuizHandler) ConfigureQuiz(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received quiz configuration request")
+
+	var req models.QuizConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode quiz config request JSON: %v", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	result, err := h.service.ConfigureQuiz(req.Messages)
+	if err != nil {
+		log.Printf("[ERROR] Quiz configuration failed: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Quiz configuration completed successfully, type: %s", result.Type)
+	h.writeJSONResponse(w, http.StatusOK, result)
 }

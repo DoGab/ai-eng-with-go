@@ -7,6 +7,8 @@ import (
 
 	"flashcards/db"
 	"flashcards/models"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 )
 
 type NoteService struct {
@@ -147,4 +149,62 @@ func (s *NoteService) validateUpdateRequest(req *models.UpdateNoteRequest) error
 	}
 
 	return nil
+}
+
+func (s *NoteService) SearchNotesByContent(searchTerms []string) ([]*models.Note, error) {
+	log.Printf("[INFO] Starting note search with %d search terms", len(searchTerms))
+
+	notes, err := s.GetAllNotes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get notes for search: %w", err)
+	}
+
+	if len(searchTerms) == 0 {
+		log.Printf("[INFO] No search terms provided, returning all %d notes", len(notes))
+		return notes, nil
+	}
+
+	var matchingNotes []*models.Note
+	for _, note := range notes {
+		if s.noteMatchesSearch(note, searchTerms) {
+			matchingNotes = append(matchingNotes, note)
+		}
+	}
+
+	log.Printf("[INFO] Found %d notes matching search criteria", len(matchingNotes))
+	return matchingNotes, nil
+}
+
+func (s *NoteService) noteMatchesSearch(note *models.Note, searchTerms []string) bool {
+	noteContent := note.Content
+	words := strings.Fields(strings.ToLower(noteContent))
+	
+	for _, term := range searchTerms {
+		// Exact match (highest priority)
+		if fuzzy.MatchFold(term, noteContent) {
+			return true
+		}
+		
+		// Clean words by removing punctuation
+		cleanWords := make([]string, 0, len(words))
+		for _, word := range words {
+			cleanWord := strings.Trim(word, ".,!?;:()[]{}\"'")
+			if len(cleanWord) > 0 {
+				cleanWords = append(cleanWords, cleanWord)
+			}
+		}
+		
+		// Use fuzzy search against individual words
+		matches := fuzzy.Find(term, cleanWords)
+		if len(matches) > 0 {
+			return true
+		}
+		
+		// Also check against the full content for partial matches
+		if len(term) > 2 && fuzzy.MatchFold(term, noteContent) {
+			return true
+		}
+	}
+	
+	return false
 }
