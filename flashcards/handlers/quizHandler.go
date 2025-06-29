@@ -36,6 +36,8 @@ func (h *QuizHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/quiz/configure", h.ConfigureQuiz).Methods("POST")
 	router.HandleFunc("/quiz/rank", h.RankNotes).Methods("POST")
 	router.HandleFunc("/quiz/conduct", h.ConductQuiz).Methods("POST")
+	router.HandleFunc("/quiz/v2/configure", h.ConfigureQuizV2).Methods("POST")
+	router.HandleFunc("/quiz/v2/conduct", h.ConductQuizV2).Methods("POST")
 }
 
 func (h *QuizHandler) GenerateQuiz(w http.ResponseWriter, r *http.Request) {
@@ -202,5 +204,59 @@ func (h *QuizHandler) ConductQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("[INFO] Quiz conduct completed successfully, response type: %s", result.Type)
+	h.writeJSONResponse(w, http.StatusOK, result)
+}
+
+func (h *QuizHandler) ConfigureQuizV2(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received quiz v2 configuration request")
+
+	var req models.QuizV2ConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode quiz v2 config request JSON: %v", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	result, err := h.service.ConfigureQuizV2(req.Messages)
+	if err != nil {
+		log.Printf("[ERROR] Quiz v2 configuration failed: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Quiz v2 configuration completed successfully, type: %s", result.Type)
+	h.writeJSONResponse(w, http.StatusOK, result)
+}
+
+func (h *QuizHandler) ConductQuizV2(w http.ResponseWriter, r *http.Request) {
+	log.Printf("[INFO] Received quiz v2 conduct request")
+
+	var req models.QuizV2ConductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("[ERROR] Failed to decode quiz v2 conduct request JSON: %v", err)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	if len(req.Config.Topics) == 0 {
+		log.Printf("[ERROR] No topics provided in quiz v2 conduct request")
+		h.writeErrorResponse(w, http.StatusBadRequest, "At least one topic is required")
+		return
+	}
+
+	if req.Config.QuestionCount <= 0 {
+		log.Printf("[ERROR] Invalid question count in quiz v2 conduct request: %d", req.Config.QuestionCount)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Question count must be greater than 0")
+		return
+	}
+
+	result, err := h.service.ConductQuizV2(req.Config, req.Messages)
+	if err != nil {
+		log.Printf("[ERROR] Quiz v2 conduct failed: %v", err)
+		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("[INFO] Quiz v2 conduct completed successfully, response type: %s", result.Type)
 	h.writeJSONResponse(w, http.StatusOK, result)
 }

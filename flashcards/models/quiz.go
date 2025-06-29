@@ -51,3 +51,29 @@ type QuizEvaluation struct {
 	Correct  bool   `json:"correct"`
 	Feedback string `json:"feedback"`
 }
+
+type QuizV2ConfigRequest struct {
+	Messages []Message `json:"messages"`
+}
+
+type QuizV2ConfigResponse struct {
+	Type    string               `json:"type"`
+	Message string               `json:"message"`
+	Config  *QuizV2Configuration `json:"config"`
+}
+
+type QuizV2Configuration struct {
+	QuestionCount int      `json:"question_count"`
+	Topics        []string `json:"topics"`
+}
+
+type QuizV2ConductRequest struct {
+	Config   QuizV2Configuration `json:"config"`
+	Messages []Message           `json:"messages"`
+}
+
+type QuizV2ConductResponse struct {
+	Type       string          `json:"type"`
+	Message    string          `json:"message"`
+	Evaluation *QuizEvaluation `json:"evaluation"`
+}
