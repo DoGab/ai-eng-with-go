@@ -10,8 +10,9 @@ import (
 )
 
 type Service struct {
-	noteService *services.NoteService
-	llm         llms.Model
+	noteService      *services.NoteService
+	quizStoreService *services.QuizStoreService
+	llm              llms.Model
 }
 
 type ContinueInterviewParams struct {
@@ -48,7 +49,7 @@ type GenerateQuizResult struct {
 	Content string `json:"content"`
 }
 
-func NewService(noteService *services.NoteService, apiKey string) *Service {
+func NewService(noteService *services.NoteService, quizStoreService *services.QuizStoreService, apiKey string) *Service {
 	llm, err := openai.New(
 		openai.WithModel("gpt-4o-mini"),
 		openai.WithToken(apiKey),
@@ -58,7 +59,8 @@ func NewService(noteService *services.NoteService, apiKey string) *Service {
 	}
 
 	return &Service{
-		noteService: noteService,
-		llm:         llm,
+		noteService:      noteService,
+		quizStoreService: quizStoreService,
+		llm:              llm,
 	}
 }

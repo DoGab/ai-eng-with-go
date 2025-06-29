@@ -91,7 +91,7 @@ var conductQuizV2Tools = []llms.Tool{
 	},
 }
 
-func buildConductQuizV2Prompt(content []string, topics []string, messages []models.Message) string {
+func buildConductQuizV2Prompt(llmContext string, topics []string, messages []models.Message) string {
 	var prompt strings.Builder
 
 	if len(messages) == 0 {
@@ -112,9 +112,8 @@ func buildConductQuizV2Prompt(content []string, topics []string, messages []mode
 	}
 
 	prompt.WriteString("Study Materials:\n")
-	for i, chunk := range content {
-		prompt.WriteString(fmt.Sprintf("%d. %s\n\n", i+1, chunk))
-	}
+	prompt.WriteString(llmContext)
+	prompt.WriteString("\n\n")
 
 	if len(messages) > 0 {
 		prompt.WriteString("Conversation History:\n")
@@ -126,22 +125,23 @@ func buildConductQuizV2Prompt(content []string, topics []string, messages []mode
 	return prompt.String()
 }
 
-func (qs *Service) ConductQuizV2(config models.QuizV2Configuration, messages []models.Message) (*models.QuizV2ConductResponse, error) {
-	log.Printf("[INFO] Starting quiz v2 conduct with topics: %v, %d messages", config.Topics, len(messages))
+func (qs *Service) ConductQuizV2(quizID int, messages []models.Message) (*models.QuizV2ConductResponse, error) {
+	log.Printf("[INFO] Starting quiz v2 conduct with quiz ID: %d, %d messages", quizID, len(messages))
 
-	if len(config.Topics) == 0 {
-		return nil, fmt.Errorf("at least one topic is required")
+	if quizID <= 0 {
+		return nil, fmt.Errorf("invalid quiz ID: %d", quizID)
 	}
 
-	log.Printf("[INFO] Retrieving content for topics: %v", config.Topics)
-	content := GetContentForTopics(config.Topics)
-	if len(content) == 0 {
-		log.Printf("[ERROR] No content available for topics: %v", config.Topics)
-		return nil, fmt.Errorf("no content available for topics: %v", config.Topics)
+	log.Printf("[INFO] Fetching quiz from database with ID: %d", quizID)
+	quiz, err := qs.quizStoreService.GetQuizByID(quizID)
+	if err != nil {
+		log.Printf("[ERROR] Failed to fetch quiz with ID %d: %v", quizID, err)
+		return nil, fmt.Errorf("failed to fetch quiz: %w", err)
 	}
-	log.Printf("[INFO] Retrieved %d content chunks for topics %v", len(content), config.Topics)
 
-	prompt := buildConductQuizV2Prompt(content, config.Topics, messages)
+	log.Printf("[INFO] Using stored LLM context for quiz ID %d (length: %d chars)", quizID, len(quiz.LLMContext))
+
+	prompt := buildConductQuizV2Prompt(quiz.LLMContext, quiz.Config.Topics, messages)
 
 	ctx := context.Background()
 	messageHistory := []llms.MessageContent{

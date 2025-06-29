@@ -238,19 +238,13 @@ func (h *QuizHandler) ConductQuizV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Config.Topics) == 0 {
-		log.Printf("[ERROR] No topics provided in quiz v2 conduct request")
-		h.writeErrorResponse(w, http.StatusBadRequest, "At least one topic is required")
+	if req.QuizID <= 0 {
+		log.Printf("[ERROR] Invalid quiz ID in quiz v2 conduct request: %d", req.QuizID)
+		h.writeErrorResponse(w, http.StatusBadRequest, "Valid quiz ID is required")
 		return
 	}
 
-	if req.Config.QuestionCount <= 0 {
-		log.Printf("[ERROR] Invalid question count in quiz v2 conduct request: %d", req.Config.QuestionCount)
-		h.writeErrorResponse(w, http.StatusBadRequest, "Question count must be greater than 0")
-		return
-	}
-
-	result, err := h.service.ConductQuizV2(req.Config, req.Messages)
+	result, err := h.service.ConductQuizV2(req.QuizID, req.Messages)
 	if err != nil {
 		log.Printf("[ERROR] Quiz v2 conduct failed: %v", err)
 		h.writeErrorResponse(w, http.StatusInternalServerError, err.Error())

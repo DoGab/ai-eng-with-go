@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"flashcards/db"
 	"flashcards/handlers"
 	"flashcards/services"
+	"flashcards/services/pinecone"
 	"flashcards/services/quiz"
 
 	"github.com/gorilla/mux"
@@ -21,16 +22,34 @@ func main() {
 		log.Fatal("DB_URL environment variable is required")
 	}
 
+	if cfg.PineconeAPIKey == "" {
+		log.Fatal("PINECONE_API_KEY environment variable is required")
+	}
+
 	noteRepo, err := db.NewPostgresNoteRepository(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize note database: %v", err)
 	}
 	defer noteRepo.Close()
 
+	quizRepo, err := db.NewPostgresQuizRepository(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize quiz database: %v", err)
+	}
+	defer quizRepo.Close()
+
+	pineconeService, err := pinecone.NewService(cfg.PineconeAPIKey, cfg.OpenAIAPIKey)
+	if err != nil {
+		log.Fatalf("Failed to initialize Pinecone service: %v", err)
+	}
+
 	noteService := services.NewNoteService(noteRepo)
 	noteHandler := handlers.NewNoteHandler(noteService)
 
-	quizService := quiz.NewService(noteService, cfg.OpenAIAPIKey)
+	quizStoreService := services.NewQuizStoreService(quizRepo, pineconeService)
+	quizStoreHandler := handlers.NewQuizStoreHandler(quizStoreService)
+
+	quizService := quiz.NewService(noteService, quizStoreService, cfg.OpenAIAPIKey)
 	quizHandler := handlers.NewQuizHandler(quizService)
 
 	router := mux.NewRouter()
@@ -43,6 +62,7 @@ func main() {
 	}).Methods("OPTIONS")
 
 	noteHandler.RegisterRoutes(router)
+	quizStoreHandler.RegisterRoutes(router)
 	quizHandler.RegisterRoutes(router)
 
 	router.HandleFunc("/health", healthCheckHandler).Methods("GET")

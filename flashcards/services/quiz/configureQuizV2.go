@@ -136,18 +136,8 @@ func (qs *Service) ConfigureQuizV2(messages []models.Message) (*models.QuizV2Con
 			return nil, fmt.Errorf("failed to parse finalize_quiz_config arguments: %w", err)
 		}
 
-		log.Printf("[INFO] Checking content availability for topics: %v", params.Topics)
-		content := GetContentForTopics(params.Topics)
-		log.Printf("[INFO] Found %d content chunks for topics %v", len(content), params.Topics)
-
-		if len(content) == 0 {
-			log.Printf("[ERROR] No content found for topics: %v", params.Topics)
-			return &models.QuizV2ConfigResponse{
-				Type:    "continue",
-				Message: fmt.Sprintf("I don't have enough content about %v to create a meaningful quiz. Could you try different topics or be more specific about what you'd like to study?", params.Topics),
-				Config:  nil,
-			}, nil
-		}
+		log.Printf("[INFO] Configuration ready for topics: %v", params.Topics)
+		log.Printf("[INFO] Topics will be used to generate quiz content from Pinecone when quiz is created")
 
 		config := &models.QuizV2Configuration{
 			QuestionCount: params.QuestionCount,

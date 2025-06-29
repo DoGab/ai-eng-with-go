@@ -1,8 +1,22 @@
 package models
 
+import "time"
+
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type Quiz struct {
+	ID         int                 `json:"id" db:"id"`
+	Config     QuizV2Configuration `json:"config" db:"config"`
+	LLMContext string              `json:"-" db:"llm_context"`
+	CreatedAt  time.Time           `json:"createdAt" db:"createdAt"`
+	UpdatedAt  time.Time           `json:"updatedAt" db:"updatedAt"`
+}
+
+type CreateQuizRequest struct {
+	Config QuizV2Configuration `json:"config"`
 }
 
 type QuizConfigRequest struct {
@@ -68,8 +82,8 @@ type QuizV2Configuration struct {
 }
 
 type QuizV2ConductRequest struct {
-	Config   QuizV2Configuration `json:"config"`
-	Messages []Message           `json:"messages"`
+	QuizID   int       `json:"quiz_id"`
+	Messages []Message `json:"messages"`
 }
 
 type QuizV2ConductResponse struct {
