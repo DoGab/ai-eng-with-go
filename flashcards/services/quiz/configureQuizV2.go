@@ -20,11 +20,13 @@ Ask about:
 
 Be conversational and helpful. Once you have enough information to create a quiz configuration, call the finalize_quiz_config function with the appropriate parameters.
 
-IMPORTANT: When extracting topics for content retrieval, be very precise and only use the EXACT keywords the user mentioned. Do not expand or interpret their request - use only their specific words. For example:
-- If user says "scalability" → use ["scalability"]
-- If user says "database performance" → use ["database", "performance"] 
-- If user says "caching" → use ["caching"]
-- Do NOT add related terms like "distributed systems" unless the user specifically mentioned them.
+CRITICAL: When extracting topics, treat the user's input as COMPLETE TOPIC PHRASES, not individual keywords. For example:
+- If user says "testing distributed systems" → use ["testing distributed systems"] as ONE topic
+- If user says "database performance optimization" → use ["database performance optimization"] as ONE topic
+- If user says "scalability and caching" → use ["scalability", "caching"] as TWO separate topics
+- Do NOT break down topic phrases into individual words unless the user clearly mentions multiple distinct topics
+
+Only create multiple topics if the user explicitly mentions multiple separate subjects (like "I want to study both X and Y").
 
 If you need more information, call continue_interview to ask follow-up questions.`
 )
@@ -59,11 +61,11 @@ var configQuizV2Tools = []llms.Tool{
 						"type":        "integer",
 						"description": "Number of questions for the quiz",
 						"minimum":     1,
-						"maximum":     50,
+						"maximum":     5,
 					},
 					"topics": map[string]any{
 						"type":        "array",
-						"description": "Array of EXACT topic keywords that the user specifically mentioned. Do not add related or interpreted terms - only use the user's exact words.",
+						"description": "Array of complete topic phrases that the user mentioned. Keep topic phrases intact (e.g., 'testing distributed systems' as one topic, not split into separate words). Only create multiple array items if user mentions multiple distinct subjects.",
 						"items": map[string]any{
 							"type": "string",
 						},
@@ -137,7 +139,7 @@ func (qs *Service) ConfigureQuizV2(messages []models.Message) (*models.QuizV2Con
 		}
 
 		log.Printf("[INFO] Configuration ready for topics: %v", params.Topics)
-		log.Printf("[INFO] Topics will be used to generate quiz content from Pinecone when quiz is created")
+		log.Printf("[INFO] Topics will be used to generate quiz content from document index when quiz is created")
 
 		config := &models.QuizV2Configuration{
 			QuestionCount: params.QuestionCount,

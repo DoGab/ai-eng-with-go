@@ -81,6 +81,19 @@ export const interactiveQuizApi = {
   })
 };
 
+export const quizV2Api = {
+  configure: (messages) => api.post('/quiz/v2/configure', { messages }),
+  createQuiz: (config) => api.post('/quizzes', { config }),
+  conductQuiz: (quizId, messages) => api.post('/quiz/v2/conduct', { 
+    quiz_id: quizId, 
+    messages 
+  }),
+  getQuiz: (id) => api.get(`/quizzes/${id}`),
+  getAllQuizzes: () => api.get('/quizzes'),
+  updateQuiz: (id, updateData) => api.put(`/quizzes/${id}`, updateData),
+  deleteQuiz: (id) => api.delete(`/quizzes/${id}`)
+};
+
 export const healthApi = {
   check: () => api.get('/health'),
 };

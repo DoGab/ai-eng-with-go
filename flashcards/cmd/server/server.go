@@ -9,7 +9,7 @@ import (
 	"flashcards/db"
 	"flashcards/handlers"
 	"flashcards/services"
-	"flashcards/services/pinecone"
+	"flashcards/services/docindex"
 	"flashcards/services/quiz"
 
 	"github.com/gorilla/mux"
@@ -38,15 +38,15 @@ func main() {
 	}
 	defer quizRepo.Close()
 
-	pineconeService, err := pinecone.NewService(cfg.PineconeAPIKey, cfg.OpenAIAPIKey)
+	docindexService, err := docindex.NewService(cfg.PineconeAPIKey, cfg.OpenAIAPIKey)
 	if err != nil {
-		log.Fatalf("Failed to initialize Pinecone service: %v", err)
+		log.Fatalf("Failed to initialize document index service: %v", err)
 	}
 
 	noteService := services.NewNoteService(noteRepo)
 	noteHandler := handlers.NewNoteHandler(noteService)
 
-	quizStoreService := services.NewQuizStoreService(quizRepo, pineconeService)
+	quizStoreService := services.NewQuizStoreService(quizRepo, docindexService)
 	quizStoreHandler := handlers.NewQuizStoreHandler(quizStoreService)
 
 	quizService := quiz.NewService(noteService, quizStoreService, cfg.OpenAIAPIKey)

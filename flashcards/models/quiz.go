@@ -8,11 +8,12 @@ type Message struct {
 }
 
 type Quiz struct {
-	ID         int                 `json:"id" db:"id"`
-	Config     QuizV2Configuration `json:"config" db:"config"`
-	LLMContext string              `json:"-" db:"llm_context"`
-	CreatedAt  time.Time           `json:"createdAt" db:"createdAt"`
-	UpdatedAt  time.Time           `json:"updatedAt" db:"updatedAt"`
+	ID              int                 `json:"id" db:"id"`
+	Config          QuizV2Configuration `json:"config" db:"config"`
+	LLMContext      string              `json:"-" db:"llm_context"`
+	AskedQuestions  []string            `json:"asked_questions" db:"asked_questions"`
+	CreatedAt       time.Time           `json:"createdAt" db:"createdAt"`
+	UpdatedAt       time.Time           `json:"updatedAt" db:"updatedAt"`
 }
 
 type CreateQuizRequest struct {
@@ -90,4 +91,8 @@ type QuizV2ConductResponse struct {
 	Type       string          `json:"type"`
 	Message    string          `json:"message"`
 	Evaluation *QuizEvaluation `json:"evaluation"`
+}
+
+type UpdateQuizRequest struct {
+	AskedQuestions []string `json:"asked_questions"`
 }

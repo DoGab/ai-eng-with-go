@@ -23,6 +23,7 @@ func (h *QuizStoreHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/quizzes", h.CreateQuiz).Methods("POST")
 	router.HandleFunc("/quizzes", h.GetAllQuizzes).Methods("GET")
 	router.HandleFunc("/quizzes/{id:[0-9]+}", h.GetQuizByID).Methods("GET")
+	router.HandleFunc("/quizzes/{id:[0-9]+}", h.UpdateQuiz).Methods("PUT")
 	router.HandleFunc("/quizzes/{id:[0-9]+}", h.DeleteQuiz).Methods("DELETE")
 }
 
@@ -71,6 +72,33 @@ func (h *QuizStoreHandler) GetQuizByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.writeJSONResponse(w, http.StatusOK, quiz)
+}
+
+func (h *QuizStoreHandler) UpdateQuiz(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid quiz ID")
+		return
+	}
+
+	var req models.UpdateQuizRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeErrorResponse(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	err = h.service.UpdateQuiz(id, &req)
+	if err != nil {
+		if containsQuizNotFound(err.Error()) {
+			h.writeErrorResponse(w, http.StatusNotFound, err.Error())
+		} else {
+			h.writeErrorResponse(w, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *QuizStoreHandler) DeleteQuiz(w http.ResponseWriter, r *http.Request) {

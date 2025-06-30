@@ -14,13 +14,13 @@ help:
 
 # Application commands
 build:
-	go build -o todo-api cmd/main.go
+	go build -o flashcards-api cmd/server/server.go
 
 run:
-	go run cmd/main.go
+	go run cmd/server/server.go
 
 clean:
-	rm -f todo-api
+	rm -f flashcards-api
 
 # Database commands
 db-start:

@@ -7,18 +7,18 @@ import (
 
 	"flashcards/db"
 	"flashcards/models"
-	"flashcards/services/pinecone"
+	"flashcards/services/docindex"
 )
 
 type QuizStoreService struct {
 	repo           db.QuizRepository
-	pineconeService *pinecone.Service
+	docindexService *docindex.Service
 }
 
-func NewQuizStoreService(repo db.QuizRepository, pineconeService *pinecone.Service) *QuizStoreService {
+func NewQuizStoreService(repo db.QuizRepository, docindexService *docindex.Service) *QuizStoreService {
 	return &QuizStoreService{
 		repo:           repo,
-		pineconeService: pineconeService,
+		docindexService: docindexService,
 	}
 }
 
@@ -30,8 +30,10 @@ func (s *QuizStoreService) CreateQuiz(req *models.CreateQuizRequest) (*models.Qu
 		return nil, err
 	}
 
-	log.Printf("[INFO] Generating LLM context via Pinecone for topics: %v", req.Config.Topics)
-	llmContext, err := s.pineconeService.QueryTopicChunks(req.Config.Topics, 5)
+	log.Printf("[INFO] Generating LLM context via document index for topics: %v", req.Config.Topics)
+	chunkLimit := req.Config.QuestionCount + 5
+	log.Printf("[INFO] Using chunk limit of %d (question_count: %d + 5)", chunkLimit, req.Config.QuestionCount)
+	llmContext, err := s.docindexService.QueryTopicChunks(req.Config.Topics, chunkLimit)
 	if err != nil {
 		log.Printf("[ERROR] Failed to generate LLM context: %v", err)
 		return nil, fmt.Errorf("failed to generate LLM context: %w", err)
@@ -41,8 +43,9 @@ func (s *QuizStoreService) CreateQuiz(req *models.CreateQuizRequest) (*models.Qu
 	log.Printf("[INFO] Generated LLM context of length: %d characters", len(combinedContext))
 
 	quiz := &models.Quiz{
-		Config:     req.Config,
-		LLMContext: combinedContext,
+		Config:         req.Config,
+		LLMContext:     combinedContext,
+		AskedQuestions: []string{}, // Initialize empty array
 	}
 
 	if err := s.repo.CreateQuiz(quiz); err != nil {
@@ -102,6 +105,23 @@ func (s *QuizStoreService) DeleteQuiz(id int) error {
 	return nil
 }
 
+func (s *QuizStoreService) UpdateQuiz(id int, req *models.UpdateQuizRequest) error {
+	log.Printf("[INFO] Starting update quiz with ID %d", id)
+
+	if id <= 0 {
+		log.Printf("[ERROR] Invalid quiz ID provided for update: %d", id)
+		return fmt.Errorf("invalid quiz ID: %d", id)
+	}
+
+	if err := s.repo.UpdateQuiz(id, req); err != nil {
+		log.Printf("[ERROR] Failed to update quiz ID %d: %v", id, err)
+		return err
+	}
+
+	log.Printf("[INFO] Successfully updated quiz with ID %d", id)
+	return nil
+}
+
 func (s *QuizStoreService) validateCreateRequest(req *models.CreateQuizRequest) error {
 	if req == nil {
 		return fmt.Errorf("request cannot be nil")
@@ -113,6 +133,10 @@ func (s *QuizStoreService) validateCreateRequest(req *models.CreateQuizRequest) 
 
 	if req.Config.QuestionCount <= 0 {
 		return fmt.Errorf("question count must be greater than 0")
+	}
+
+	if req.Config.QuestionCount > 5 {
+		return fmt.Errorf("question count cannot exceed 5")
 	}
 
 	for i, topic := range req.Config.Topics {

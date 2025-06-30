@@ -13,10 +13,14 @@ import (
 )
 
 const (
-	conductQuizV2SystemPrompt = `You are an interactive quiz assistant. Your role is to conduct engaging quiz sessions based on study content.
+	conductQuizV2SystemPrompt = `You are an interactive quiz tutor. Your role is to conduct engaging quiz sessions as if you are a knowledgeable human instructor.
+
+CRITICAL INSTRUCTIONS: 
+- NEVER mention or reference "study materials", "content", "sections", "summaries", "chunks", or any source material. Act as if the background knowledge is your own expertise.
+- When asking questions, get straight to the point. NO introductory phrases like "Here's a question", "Let me ask you", "I'd like to know", or any preamble. Just ask the question directly.
 
 BEHAVIOR GUIDELINES:
-1. If this is the start of a conversation (no previous messages), generate ONE thoughtful, open-ended question based on the provided content and topics.
+1. If this is the start of a conversation (no previous messages), generate ONE thoughtful, open-ended question using your knowledge about the specified topics. Ask it directly without any introduction.
 
 2. If the user responds to your question:
    - If they give a genuine attempt to answer the quiz question, use evaluate_answer to provide feedback
@@ -37,7 +41,7 @@ BEHAVIOR GUIDELINES:
    - CRITICAL: When providing clarifications, do NOT reveal or hint at the correct answer
    - Explain concepts or terms without giving away what the user should say in their response
 
-5. Keep responses conversational and engaging, not robotic or formal.
+5. Keep responses conversational and engaging, not robotic or formal. Act like a human tutor, not a system reading from materials.
 
 IMPORTANT: Call evaluate_answer when the user makes a genuine attempt to answer OR when they explicitly give up/surrender. Use continue_quiz for everything else.`
 )
@@ -91,32 +95,40 @@ var conductQuizV2Tools = []llms.Tool{
 	},
 }
 
-func buildConductQuizV2Prompt(llmContext string, topics []string, messages []models.Message) string {
+func buildConductQuizV2Prompt(llmContext string, topics []string, askedQuestions []string, messages []models.Message) string {
 	var prompt strings.Builder
 
 	if len(messages) == 0 {
-		prompt.WriteString("Generate one thoughtful quiz question based on the following study materials")
+		prompt.WriteString("Generate one thoughtful quiz question")
 		if len(topics) > 0 {
-			prompt.WriteString(" focusing on: ")
+			prompt.WriteString(" about: ")
 			prompt.WriteString(strings.Join(topics, ", "))
 		}
-		prompt.WriteString(".\n\n")
+		prompt.WriteString(". Use your knowledge to create an engaging question that tests understanding.")
+		
+		if len(askedQuestions) > 0 {
+			prompt.WriteString(" IMPORTANT: Do not repeat these previously asked questions:\n")
+			for i, question := range askedQuestions {
+				prompt.WriteString(fmt.Sprintf("%d. %s\n", i+1, question))
+			}
+			prompt.WriteString("Make sure your new question is different and covers new aspects of the topics.")
+		}
 	} else {
-		prompt.WriteString("Continue the quiz conversation based on the study materials and conversation history")
+		prompt.WriteString("Continue the quiz conversation")
 		if len(topics) > 0 {
-			prompt.WriteString(" (topics: ")
+			prompt.WriteString(" about: ")
 			prompt.WriteString(strings.Join(topics, ", "))
-			prompt.WriteString(")")
 		}
-		prompt.WriteString(".\n\n")
+		prompt.WriteString(". Use your knowledge to provide appropriate responses.")
 	}
+	prompt.WriteString("\n\n")
 
-	prompt.WriteString("Study Materials:\n")
+	prompt.WriteString("Background Knowledge:\n")
 	prompt.WriteString(llmContext)
 	prompt.WriteString("\n\n")
 
 	if len(messages) > 0 {
-		prompt.WriteString("Conversation History:\n")
+		prompt.WriteString("Conversation:\n")
 		for _, msg := range messages {
 			prompt.WriteString(fmt.Sprintf("%s: %s\n", msg.Role, msg.Content))
 		}
@@ -140,8 +152,9 @@ func (qs *Service) ConductQuizV2(quizID int, messages []models.Message) (*models
 	}
 
 	log.Printf("[INFO] Using stored LLM context for quiz ID %d (length: %d chars)", quizID, len(quiz.LLMContext))
+	log.Printf("[INFO] Quiz has %d previously asked questions", len(quiz.AskedQuestions))
 
-	prompt := buildConductQuizV2Prompt(quiz.LLMContext, quiz.Config.Topics, messages)
+	prompt := buildConductQuizV2Prompt(quiz.LLMContext, quiz.Config.Topics, quiz.AskedQuestions, messages)
 
 	ctx := context.Background()
 	messageHistory := []llms.MessageContent{

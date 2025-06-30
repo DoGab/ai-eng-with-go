@@ -1,4 +1,4 @@
-package pinecone
+package docindex
 
 import (
 	"context"

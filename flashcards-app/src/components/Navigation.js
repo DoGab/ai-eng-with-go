@@ -1,10 +1,16 @@
-import React from 'react';
-import { BookOpenIcon, AcademicCapIcon, HeartIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { BookOpenIcon, AcademicCapIcon, HeartIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 const Navigation = ({ activeTab, setActiveTab }) => {
+  const [showOldVersions, setShowOldVersions] = useState(false);
+
   const tabs = [
     { id: 'notes', name: 'Notes', icon: BookOpenIcon },
     { id: 'interactive', name: 'Interactive Quiz', icon: AcademicCapIcon },
+  ];
+
+  const oldVersions = [
+    { id: 'interactive-old', name: 'Interactive Quiz (old)', icon: AcademicCapIcon },
   ];
 
   return (
@@ -34,6 +40,49 @@ const Navigation = ({ activeTab, setActiveTab }) => {
                 </button>
               );
             })}
+            
+            {/* Old Versions Dropdown */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setShowOldVersions(true)}
+              onMouseLeave={() => setShowOldVersions(false)}
+            >
+              <button
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  oldVersions.some(version => version.id === activeTab)
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronDownIcon className="h-5 w-5" />
+                Old Versions
+              </button>
+              
+              {showOldVersions && (
+                <div className="absolute top-full left-0 -mt-1 pt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48">
+                  {oldVersions.map((version) => {
+                    const Icon = version.icon;
+                    return (
+                      <button
+                        key={version.id}
+                        onClick={() => {
+                          setActiveTab(version.id);
+                          setShowOldVersions(false);
+                        }}
+                        className={`flex items-center gap-2 w-full px-4 py-2 text-left font-medium transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                          activeTab === version.id
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        {version.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           
           <div className="flex items-center gap-2 text-sm text-gray-500">

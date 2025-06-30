@@ -14,6 +14,7 @@ type QuizRepository interface {
 	CreateQuiz(quiz *models.Quiz) error
 	GetQuizByID(id int) (*models.Quiz, error)
 	GetAllQuizzes() ([]*models.Quiz, error)
+	UpdateQuiz(id int, req *models.UpdateQuizRequest) error
 	DeleteQuiz(id int) error
 }
 
@@ -40,12 +41,17 @@ func (r *PostgresQuizRepository) CreateQuiz(quiz *models.Quiz) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
+	askedQuestionsJSON, err := json.Marshal(quiz.AskedQuestions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal asked_questions: %w", err)
+	}
+
 	query := `
-		INSERT INTO gocourse.quizzes (config, llm_context) 
-		VALUES ($1, $2) 
+		INSERT INTO gocourse.quizzes (config, llm_context, asked_questions) 
+		VALUES ($1, $2, $3) 
 		RETURNING id, createdAt, updatedAt`
 
-	row := r.db.QueryRow(query, configJSON, quiz.LLMContext)
+	row := r.db.QueryRow(query, configJSON, quiz.LLMContext, askedQuestionsJSON)
 
 	err = row.Scan(&quiz.ID, &quiz.CreatedAt, &quiz.UpdatedAt)
 	if err != nil {
@@ -57,15 +63,15 @@ func (r *PostgresQuizRepository) CreateQuiz(quiz *models.Quiz) error {
 
 func (r *PostgresQuizRepository) GetQuizByID(id int) (*models.Quiz, error) {
 	query := `
-		SELECT id, config, llm_context, createdAt, updatedAt 
+		SELECT id, config, llm_context, asked_questions, createdAt, updatedAt 
 		FROM gocourse.quizzes 
 		WHERE id = $1`
 
 	quiz := &models.Quiz{}
-	var configJSON []byte
+	var configJSON, askedQuestionsJSON []byte
 	row := r.db.QueryRow(query, id)
 
-	err := row.Scan(&quiz.ID, &configJSON, &quiz.LLMContext, &quiz.CreatedAt, &quiz.UpdatedAt)
+	err := row.Scan(&quiz.ID, &configJSON, &quiz.LLMContext, &askedQuestionsJSON, &quiz.CreatedAt, &quiz.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("quiz with id %d not found", id)
@@ -77,12 +83,16 @@ func (r *PostgresQuizRepository) GetQuizByID(id int) (*models.Quiz, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	if err := json.Unmarshal(askedQuestionsJSON, &quiz.AskedQuestions); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal asked_questions: %w", err)
+	}
+
 	return quiz, nil
 }
 
 func (r *PostgresQuizRepository) GetAllQuizzes() ([]*models.Quiz, error) {
 	query := `
-		SELECT id, config, llm_context, createdAt, updatedAt 
+		SELECT id, config, llm_context, asked_questions, createdAt, updatedAt 
 		FROM gocourse.quizzes 
 		ORDER BY createdAt DESC`
 
@@ -95,14 +105,18 @@ func (r *PostgresQuizRepository) GetAllQuizzes() ([]*models.Quiz, error) {
 	quizzes := make([]*models.Quiz, 0)
 	for rows.Next() {
 		quiz := &models.Quiz{}
-		var configJSON []byte
-		err := rows.Scan(&quiz.ID, &configJSON, &quiz.LLMContext, &quiz.CreatedAt, &quiz.UpdatedAt)
+		var configJSON, askedQuestionsJSON []byte
+		err := rows.Scan(&quiz.ID, &configJSON, &quiz.LLMContext, &askedQuestionsJSON, &quiz.CreatedAt, &quiz.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan quiz: %w", err)
 		}
 
 		if err := json.Unmarshal(configJSON, &quiz.Config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+		}
+
+		if err := json.Unmarshal(askedQuestionsJSON, &quiz.AskedQuestions); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal asked_questions: %w", err)
 		}
 
 		quizzes = append(quizzes, quiz)
@@ -113,6 +127,34 @@ func (r *PostgresQuizRepository) GetAllQuizzes() ([]*models.Quiz, error) {
 	}
 
 	return quizzes, nil
+}
+
+func (r *PostgresQuizRepository) UpdateQuiz(id int, req *models.UpdateQuizRequest) error {
+	askedQuestionsJSON, err := json.Marshal(req.AskedQuestions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal asked_questions: %w", err)
+	}
+
+	query := `
+		UPDATE gocourse.quizzes 
+		SET asked_questions = $1, updatedAt = NOW() 
+		WHERE id = $2`
+
+	result, err := r.db.Exec(query, askedQuestionsJSON, id)
+	if err != nil {
+		return fmt.Errorf("failed to update quiz: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("quiz with id %d not found", id)
+	}
+
+	return nil
 }
 
 func (r *PostgresQuizRepository) DeleteQuiz(id int) error {
