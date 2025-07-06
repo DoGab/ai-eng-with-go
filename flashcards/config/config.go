@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL    string
-	Port           string
-	OpenAIAPIKey   string
-	PineconeAPIKey string
+	DatabaseURL       string
+	Port              string
+	OpenAIAPIKey      string
+	PineconeAPIKey    string
+	PineconeIndexName string
 }
 
 func Load() *Config {
@@ -20,10 +21,11 @@ func Load() *Config {
 	}
 
 	config := &Config{
-		DatabaseURL:    getEnv("DB_URL"),
-		Port:           getEnvWithDefault("PORT", "8080"),
-		OpenAIAPIKey:   getEnv("OPENAI_API_KEY"),
-		PineconeAPIKey: getEnv("PINECONE_API_KEY"),
+		DatabaseURL:       getEnv("DB_URL"),
+		Port:              getEnvWithDefault("PORT", "8080"),
+		OpenAIAPIKey:      getEnv("OPENAI_API_KEY"),
+		PineconeAPIKey:    getEnv("PINECONE_API_KEY"),
+		PineconeIndexName: getEnvWithDefault("PINECONE_INDEX_NAME", "flashcards-notes-index-dev"),
 	}
 
 	return config

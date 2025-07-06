@@ -103,7 +103,8 @@ func main() {
 		log.Fatalf("[ERROR] Failed to create Pinecone client: %v", err)
 	}
 
-	indexName := "flashcards-notes-index"
+	indexName := cfg.PineconeIndexName
+	log.Printf("[INFO] Using Pinecone index: %s", indexName)
 	if err := ensurePineconeIndex(pc, indexName); err != nil {
 		log.Fatalf("[ERROR] Failed to ensure Pinecone index: %v", err)
 	}
@@ -199,7 +200,7 @@ func processNote(pc *pinecone.Client, indexName string, note *models.Note, llm l
 			headingInfo = fmt.Sprintf("%s [Path: %s]", chunks[i].Heading, strings.Join(chunks[i].HeadingPath, " → "))
 		}
 		log.Printf("[INFO] Processing chunk %d/%d for note ID %d (Heading: %s)", i+1, len(chunks), note.ID, headingInfo)
-		
+
 		// Enrich the chunk
 		enrichedContext, err := enrichChunkContext(llm, chunks[i])
 		if err != nil {
@@ -401,7 +402,7 @@ func deleteExistingVectors(pc *pinecone.Client, indexName string, noteID int) er
 	log.Printf("[INFO] Checking for existing vectors for note ID %d", noteID)
 	prefix := fmt.Sprintf("note_%d_", noteID)
 	limit := uint32(100)
-	
+
 	listResp, err := idxConn.ListVectors(ctx, &pinecone.ListVectorsRequest{
 		Prefix: &prefix,
 		Limit:  &limit,
@@ -460,7 +461,7 @@ func deleteExistingVectors(pc *pinecone.Client, indexName string, noteID int) er
 func createSingleVector(chunk DocumentChunk, embedder embeddings.Embedder) (*pinecone.Vector, error) {
 	ctx := context.Background()
 
-	combinedText := fmt.Sprintf("Heading: %s\n\nContent: %s\n\nContext: %s", 
+	combinedText := fmt.Sprintf("Heading: %s\n\nContent: %s\n\nContext: %s",
 		chunk.Heading, chunk.Content, chunk.EnrichedContext)
 
 	embeddings, err := embedder.EmbedDocuments(ctx, []string{combinedText})
@@ -511,83 +512,6 @@ func upsertSingleVector(pc *pinecone.Client, indexName string, vector *pinecone.
 	_, err = idxConn.UpsertVectors(ctx, []*pinecone.Vector{vector})
 	if err != nil {
 		return fmt.Errorf("failed to upsert vector: %w", err)
-	}
-
-	return nil
-}
-
-func createVectors(chunks []DocumentChunk, embedder embeddings.Embedder) ([]*pinecone.Vector, error) {
-	ctx := context.Background()
-
-	var texts []string
-	for _, chunk := range chunks {
-		combinedText := fmt.Sprintf("Heading: %s\n\nContent: %s\n\nContext: %s",
-			chunk.Heading, chunk.Content, chunk.EnrichedContext)
-		texts = append(texts, combinedText)
-	}
-
-	embeddings, err := embedder.EmbedDocuments(ctx, texts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate embeddings: %w", err)
-	}
-
-	var vectors []*pinecone.Vector
-	for i, chunk := range chunks {
-		metadata := map[string]any{
-			"note_id":          chunk.NoteID,
-			"chunk_index":      chunk.ChunkIndex,
-			"heading":          chunk.Heading,
-			"heading_path":     strings.Join(chunk.HeadingPath, " → "),
-			"content":          chunk.Content,
-			"enriched_context": chunk.EnrichedContext,
-			"created_at":       time.Now().Format(time.RFC3339),
-		}
-
-		metadataStruct, err := structpb.NewStruct(metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create metadata struct for chunk %s: %w", chunk.ID, err)
-		}
-
-		vector := &pinecone.Vector{
-			Id:       chunk.ID,
-			Values:   &embeddings[i],
-			Metadata: metadataStruct,
-		}
-		vectors = append(vectors, vector)
-	}
-
-	return vectors, nil
-}
-
-func upsertVectors(pc *pinecone.Client, indexName string, vectors []*pinecone.Vector) error {
-	ctx := context.Background()
-
-	idxDesc, err := pc.DescribeIndex(ctx, indexName)
-	if err != nil {
-		return fmt.Errorf("failed to describe index: %w", err)
-	}
-
-	idxConn, err := pc.Index(pinecone.NewIndexConnParams{
-		Host:      idxDesc.Host,
-		Namespace: "flashcards-docs",
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create index connection: %w", err)
-	}
-
-	batchSize := 10
-	for i := 0; i < len(vectors); i += batchSize {
-		end := i + batchSize
-		if end > len(vectors) {
-			end = len(vectors)
-		}
-
-		batch := vectors[i:end]
-		count, err := idxConn.UpsertVectors(ctx, batch)
-		if err != nil {
-			return fmt.Errorf("failed to upsert vector batch: %w", err)
-		}
-		log.Printf("[INFO] Successfully upserted %d vectors (batch %d)", count, i/batchSize+1)
 	}
 
 	return nil

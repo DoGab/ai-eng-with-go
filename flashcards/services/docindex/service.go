@@ -17,8 +17,8 @@ type Service struct {
 	indexName string
 }
 
-func NewService(apiKey, openaiAPIKey string) (*Service, error) {
-	log.Printf("[INFO] Initializing Pinecone service")
+func NewService(apiKey, openaiAPIKey, indexName string) (*Service, error) {
+	log.Printf("[INFO] Initializing document index service")
 
 	pc, err := pinecone.NewClient(pinecone.NewClientParams{
 		ApiKey: apiKey,
@@ -43,10 +43,10 @@ func NewService(apiKey, openaiAPIKey string) (*Service, error) {
 	service := &Service{
 		client:    pc,
 		embedder:  embedder,
-		indexName: "flashcards-notes-index",
+		indexName: indexName,
 	}
 
-	log.Printf("[INFO] Pinecone service initialized successfully")
+	log.Printf("[INFO] Document index service initialized successfully with index: %s", indexName)
 	return service, nil
 }
 

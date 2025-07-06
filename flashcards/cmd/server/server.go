@@ -38,7 +38,7 @@ func main() {
 	}
 	defer quizRepo.Close()
 
-	docindexService, err := docindex.NewService(cfg.PineconeAPIKey, cfg.OpenAIAPIKey)
+	docindexService, err := docindex.NewService(cfg.PineconeAPIKey, cfg.OpenAIAPIKey, cfg.PineconeIndexName)
 	if err != nil {
 		log.Fatalf("Failed to initialize document index service: %v", err)
 	}
