@@ -16,3 +16,9 @@ This repository contains the course materials for **AI Engineering with Go**, a 
 The repository uses **branches as checkpoints** - at the end of most modules, I create a branch so you can access the materials at that specific point in the course.
 
 The course includes video recordings of the entire development process, from concept explanation to implementation.
+
+## Reach out for feedback!
+You can find me online if you want to share any feedback, impressions or just want to meet, would love to chat 👋
+
+Twitter - https://x.com/PreslavMihaylov
+Linkedin - https://www.linkedin.com/in/preslavmihaylov/
