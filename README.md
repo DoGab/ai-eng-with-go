@@ -18,6 +18,6 @@ The repository uses **branches as checkpoints** - at the end of most modules, I 
 The course includes video recordings of the entire development process, from concept explanation to implementation.
 
 ## Reach out for feedback!
-You can find me online if you want to share any feedback, impressions or just want to meet, would love to chat 👋
+You can find me online if you want to share any feedback or just want to chat 👋
  - Twitter - https://x.com/PreslavMihaylov
  - Linkedin - https://www.linkedin.com/in/preslavmihaylov/
