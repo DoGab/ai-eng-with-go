@@ -19,6 +19,5 @@ The course includes video recordings of the entire development process, from con
 
 ## Reach out for feedback!
 You can find me online if you want to share any feedback, impressions or just want to meet, would love to chat 👋
-
-Twitter - https://x.com/PreslavMihaylov
-Linkedin - https://www.linkedin.com/in/preslavmihaylov/
+ - Twitter - https://x.com/PreslavMihaylov
+ - Linkedin - https://www.linkedin.com/in/preslavmihaylov/
