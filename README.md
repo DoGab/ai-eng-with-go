@@ -2,7 +2,7 @@
 
 This repository contains the course materials for **AI Engineering with Go**, a hands-on course where I build a real project while teaching AI/LLM concepts using Go.
 
-🎥 **Course Link:** [Coming Soon - Link will be added here]
+🎥 **Course Link:** https://www.bytesizego.com/courses/ai-engineering-with-go
 
 ## What's Inside
 
