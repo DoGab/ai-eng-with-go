@@ -17,6 +17,13 @@ The repository uses **branches as checkpoints** - at the end of most modules, I 
 
 The course includes video recordings of the entire development process, from concept explanation to implementation.
 
+## Checkpoints for each module
+You can find all the checkpoints of the project for each of the modules in the course in the following branches:
+ - Module 1 - https://github.com/presmihaylov/ai-eng-with-go/tree/01_13_llm-streaming
+ - Module 2 - https://github.com/presmihaylov/ai-eng-with-go/tree/02_04_polish
+ - Module 3 - https://github.com/presmihaylov/ai-eng-with-go/tree/03_08_prod-deployment
+ - Module 4 - TBD
+
 ## Reach out for feedback!
 You can find me online if you want to share any feedback or just want to chat 👋
  - Twitter - https://x.com/PreslavMihaylov
