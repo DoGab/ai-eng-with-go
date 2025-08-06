@@ -1,3 +1,5 @@
+# Go Flashcards Makefile
+
 .PHONY: help build run clean db-start db-stop db-up db-down db-reset
 
 # Default target
@@ -14,13 +16,13 @@ help:
 
 # Application commands
 build:
-	go build -o flashcards-api cmd/server/server.go
+	go build -o todo-api cmd/main.go
 
 run:
-	go run cmd/server/server.go
+	go run cmd/main.go
 
 clean:
-	rm -f flashcards-api
+	rm -f todo-api
 
 # Database commands
 db-start:

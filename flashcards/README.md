@@ -1,4 +1,6 @@
-# Flashcards
+# Go Project Template
+
+A comprehensive Go project template with REST API functionality, PostgreSQL database integration, and Supabase local development setup. This template is designed to be used throughout the course as a starting point for building Go applications.
 
 ## Prerequisites
 
@@ -59,15 +61,15 @@ The template includes a complete REST API with the following endpoints:
 ### Health Check
 - `GET /health` - Application health status
 
+### Exported calls for REST client
+You can find an exported HAR archive which you can import into a REST client for easily interacting with the API in `./artifacts`
+
 ## Configuration
 
 The application uses environment-based configuration managed through the `config` package. Key configuration options:
 
 - **DB_URL**: PostgreSQL database connection string (required)
 - **PORT**: Application port (optional, defaults to 8080)
-
-### Exported calls for REST client
-You can find an exported HAR archive which you can import into a REST client for easily interacting with the API in `./artifacts`
 
 ## Database
 
@@ -80,3 +82,7 @@ The project uses PostgreSQL with Supabase for local development:
 ### Migration Management
 
 Database schema is managed through SQL migrations located in: `supabase/migrations/`.
+
+## Creating Your Own Project
+
+When you're ready to build your own application using this template, you can delete the existing todo API implementation and replace it with your own business logic. The template provides the foundation with database connectivity, configuration management, and API structure.
